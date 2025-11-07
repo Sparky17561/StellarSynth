@@ -1,0 +1,177 @@
+/* ProtonFlux Component Styles — White + Blue Theme */
+
+.proton-flux-container {
+  --bg: #ffffff;
+  --bg-soft: #f7faff;
+  --ink: #0b1020;
+  --muted: #6b7a90;
+  --border: #e2e8f6;
+  --ring: #0b6cff;
+  --ring-soft: #e9f2ff;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 1.5rem;
+  margin-bottom: 3rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 28px rgba(11, 108, 255, 0.06);
+}
+
+.proton-flux-title {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: #0b2a66;
+  background: linear-gradient(135deg, #0b2a66, #1e40af);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.proton-flux-status {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.proton-flux-energy-selector {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.proton-flux-energy-select {
+  background: var(--ring-soft);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(11, 108, 255, 0.06);
+}
+
+.proton-flux-energy-select:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px rgba(11, 108, 255, 0.25);
+}
+
+.proton-flux-energy-select:hover {
+  background: #f0f6ff;
+  border-color: #cfe0ff;
+}
+
+.proton-flux-controls {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.proton-flux-zoom-label {
+  color: var(--muted);
+  margin-right: 1rem;
+  align-self: center;
+  font-weight: 600;
+}
+
+.proton-flux-period-button {
+  padding: 0.6rem 1.2rem;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  color: #1b2b4b;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all 0.25s ease;
+  min-width: 60px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(11, 108, 255, 0.05);
+}
+
+.proton-flux-period-button.active {
+  background: linear-gradient(180deg, var(--ring) 0%, #0658e6 100%);
+  border-color: var(--ring);
+  color: white;
+  box-shadow: 0 8px 20px rgba(11, 108, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+.proton-flux-period-button:hover:not(.active) {
+  background: #f7faff;
+  border-color: #cfe0ff;
+  color: var(--ring);
+  transform: translateY(-1px);
+}
+
+.proton-flux-main-chart {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 26px rgba(11, 108, 255, 0.08);
+}
+
+.proton-flux-chart-wrapper {
+  position: relative;
+  height: 450px;
+  margin-bottom: 1rem;
+}
+
+/* Loading text */
+.proton-flux-loading {
+  text-align: center;
+  color: var(--muted);
+  padding: 2rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Add smooth hover tone to main chart */
+.proton-flux-main-chart:hover {
+  box-shadow: 0 16px 34px rgba(11, 108, 255, 0.12);
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .proton-flux-container {
+    padding: 1rem;
+  }
+  
+  .proton-flux-title {
+    font-size: 1.2rem;
+  }
+  
+  .proton-flux-controls,
+  .proton-flux-energy-selector {
+    gap: 0.4rem;
+  }
+  
+  .proton-flux-period-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    min-width: 55px;
+  }
+  
+  .proton-flux-energy-select {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.85rem;
+  }
+  
+  .proton-flux-chart-wrapper {
+    height: 350px;
+  }
+}

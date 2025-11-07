@@ -1,0 +1,168 @@
+/* Solar Wind Dashboard — White + Blue Theme (keeps your accent palette) */
+
+.solar-wind-dashboard {
+  --bg: #ffffff;
+  --bg-soft: #f7faff;            /* very light blue */
+  --ink: #0b1020;                /* deep navy text */
+  --muted: #6b7a90;              /* muted navy/gray */
+  --border: #e2e8f6;             /* light blue border */
+  --ring: #0b6cff;               /* primary blue */
+  --ring-soft: #e9f2ff;          /* soft blue fill */
+
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  color: var(--ink);
+}
+
+/* Header card */
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 40px;
+  margin-top: 60px;
+  padding: 40px 20px;
+
+  /* subtle white→faded-blue panel */
+  background: linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 34px rgba(11, 108, 255, 0.08), 0 4px 14px rgba(20, 33, 61, 0.05);
+
+  position: relative;
+  overflow: hidden;
+}
+
+/* Keep your original colorful shimmer bar for character */
+.dashboard-header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    #4a90e2 0%,
+    #8B7355 25%,
+    #FF6B35 50%,
+    #C93D3D 75%,
+    #3D8EC9 100%
+  );
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Title + icon */
+.main-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0 0 12px 0;
+
+  /* subtle ink gradient for depth on white */
+  background: linear-gradient(135deg, #0b2a66, #1a3f99);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  text-shadow: 0 2px 6px rgba(11, 108, 255, 0.12);
+}
+
+.title-icon {
+  font-size: 36px;
+  filter: drop-shadow(0 4px 10px rgba(11, 108, 255, 0.25));
+  animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.subtitle {
+  font-size: 16px;
+  color: var(--muted);
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+
+/* Content mount animation */
+.dashboard-content {
+  margin-top: 30px;
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Light scrollbar styling (WebKit) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #e6eefc, #d6e4ff);
+  border-radius: 6px;
+  border: 1px solid #cfe0ff;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #dfe9ff, #cfe0ff);
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .solar-wind-dashboard { padding: 16px; }
+  .dashboard-header { padding: 30px 16px; margin-bottom: 30px; }
+  .main-title { font-size: 28px; flex-direction: column; gap: 8px; }
+  .title-icon { font-size: 32px; }
+  .subtitle { font-size: 14px; }
+}
+
+@media (max-width: 768px) {
+  .solar-wind-dashboard { padding: 12px; }
+  .dashboard-header { padding: 24px 12px; margin-bottom: 20px; }
+  .main-title { font-size: 24px; }
+  .title-icon { font-size: 28px; }
+  .subtitle { font-size: 13px; }
+  .dashboard-content { margin-top: 20px; }
+}
+
+/* Respect dark-preference but keep a light card look */
+@media (prefers-color-scheme: dark) {
+  body { background: #0f1422; }
+  .solar-wind-dashboard { background: #f9fbff; } /* retain light canvas */
+}
+
+/* Print styles */
+@media print {
+  .solar-wind-dashboard {
+    background: white;
+    color: black;
+  }
+  .dashboard-header {
+    background: #fff !important;
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+  .chart-title,
+  .main-title {
+    color: black;
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+    text-shadow: none !important;
+  }
+}

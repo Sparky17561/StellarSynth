@@ -1,0 +1,96 @@
+.electron-flux-container {
+  background: #0a0a0a;
+  color: #ffffff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 1.5rem;
+  margin-bottom: 3rem;
+  line-height: 1.4;
+}
+
+.electron-flux-title {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-weight: 300;
+  font-size: 1.4rem;
+  color: #e0e0e0;
+}
+
+.electron-flux-status {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.electron-flux-controls {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.electron-flux-controls-label {
+  color: #888;
+  margin-right: 1rem;
+  align-self: center;
+}
+
+.electron-flux-control-button {
+  padding: 0.6rem 1.2rem;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  color: #ccc;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  min-width: 60px;
+}
+
+.electron-flux-control-button:hover {
+  background: #3a3a3a;
+  border-color: #555;
+}
+
+.electron-flux-control-button.active {
+  background: #4a90e2;
+  color: #fff;
+  border-color: #4a90e2;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+}
+
+.electron-flux-chart-wrapper {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  border: 1px solid #333;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  position: relative;
+}
+
+.electron-flux-chart-container {
+  position: relative;
+  height: 450px;
+  margin-bottom: 1rem;
+}
+
+.electron-flux-mini-chart-container {
+  position: relative;
+  height: 150px;
+}
+
+.electron-flux-zoom-hint {
+  text-align: center;
+  color: #888;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.electron-flux-loading {
+  text-align: center;
+  color: #888;
+  padding: 2rem;
+}
