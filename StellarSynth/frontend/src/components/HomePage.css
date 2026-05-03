@@ -1,0 +1,58 @@
+.home-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.quick-stats-container {
+  padding: 1.5rem 2rem;
+  border-radius: var(--radius-lg);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  position: relative;
+}
+
+.stat-box h3 {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-indicator {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.2rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.stat-indicator.low { background-color: #10b981; } /* Green */
+.stat-indicator.moderate { background-color: #f59e0b; } /* Yellow */
+.stat-indicator.high { background-color: #ef4444; } /* Red */
+
+.solar-panel-wrapper {
+  padding: 2rem;
+  border-radius: var(--radius-lg);
+  min-height: 500px;
+}

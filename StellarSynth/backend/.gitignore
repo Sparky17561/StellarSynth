@@ -1,0 +1,6 @@
+__pycache__
+venv
+*.pyc
+.env
+*.fits
+live_inference_data

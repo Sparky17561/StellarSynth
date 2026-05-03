@@ -1,0 +1,168 @@
+{
+  "meta": {
+    "generated_at": "2026-03-18T20:21:53.003880+00:00",
+    "pipeline_phase": "Phase 2 \u2014 Aggregation, Normalization, Splitting",
+    "total_sequences": 16585,
+    "computed_on": "train_split_mask1_frames_only",
+    "split_boundaries": {
+      "method": "stratified_chronological_by_harpnum",
+      "ratios": [
+        0.7,
+        0.15,
+        0.15
+      ],
+      "positive": {
+        "train_count": 189,
+        "val_count": 40,
+        "test_count": 42,
+        "train_max": 9857,
+        "val_min": 9862,
+        "val_max": 11455,
+        "test_min": 11487,
+        "test_max": 12492
+      },
+      "negative": {
+        "train_count": 1197,
+        "val_count": 256,
+        "test_count": 257,
+        "train_max": 7983,
+        "val_min": 7991,
+        "val_max": 9752,
+        "test_min": 9762,
+        "test_max": 12481
+      }
+    },
+    "class_balance": {
+      "train": {
+        "n_positive": 4307,
+        "n_negative": 6127,
+        "ratio_neg_pos": 1.423
+      },
+      "val": {
+        "n_positive": 1514,
+        "n_negative": 1422,
+        "ratio_neg_pos": 0.939
+      },
+      "test": {
+        "n_positive": 1978,
+        "n_negative": 1237,
+        "ratio_neg_pos": 0.625
+      },
+      "total": {
+        "n_positive": 7799,
+        "n_negative": 8786,
+        "ratio_neg_pos": 1.127
+      }
+    },
+    "jolt_clip_sigma": 5.0,
+    "x_static_normalization": "none \u2014 HGC cosines and solar cycle phase are naturally bounded"
+  },
+  "features": {
+    "0_E_free": {
+      "strategy": "log10_zscore",
+      "physical_floor": 1000000.0,
+      "log10_mean": 23.633108139,
+      "log10_std": 0.7506108284,
+      "n_clipped": 0,
+      "n_real_frames": 620284
+    },
+    "1_Phi_HED": {
+      "strategy": "log10_zscore",
+      "physical_floor": 1e+18,
+      "log10_mean": 21.9284706116,
+      "log10_std": 0.6260516047,
+      "n_clipped": 0,
+      "n_real_frames": 620284
+    },
+    "2_J_total": {
+      "strategy": "log10_zscore",
+      "physical_floor": 10000000000.0,
+      "log10_mean": 13.4016838074,
+      "log10_std": 0.58260113,
+      "n_clipped": 0,
+      "n_real_frames": 620284
+    },
+    "4_h_total": {
+      "strategy": "log10_zscore",
+      "physical_floor": 1000000000000.0,
+      "log10_mean": 14.1307163239,
+      "log10_std": 0.6246259809,
+      "n_clipped": 107,
+      "n_real_frames": 620284
+    },
+    "10_S_HED": {
+      "strategy": "log10_zscore",
+      "physical_floor": 1e+16,
+      "log10_mean": 19.3553600311,
+      "log10_std": 0.599522233,
+      "n_clipped": 0,
+      "n_real_frames": 620284
+    },
+    "3_J_z": {
+      "strategy": "log1p_robust",
+      "log1p_median": 0.011332117,
+      "log1p_q1": 0.009511387,
+      "log1p_q3": 0.0130682839,
+      "log1p_iqr": 0.0035568969,
+      "n_real_frames": 620284
+    },
+    "5_H_c": {
+      "strategy": "log1p_robust",
+      "log1p_median": 0.0600645617,
+      "log1p_q1": 0.0472515449,
+      "log1p_q3": 0.0732030496,
+      "log1p_iqr": 0.0259515047,
+      "n_real_frames": 620284
+    },
+    "7_alpha": {
+      "strategy": "log1p_robust",
+      "log1p_median": 0.0001033075,
+      "log1p_q1": -0.0166028272,
+      "log1p_q3": 0.0165660195,
+      "log1p_iqr": 0.0331688467,
+      "n_real_frames": 620284
+    },
+    "9_grad_Bh": {
+      "strategy": "log1p_robust",
+      "log1p_median": 0.000149245,
+      "log1p_q1": 0.0001217112,
+      "log1p_q3": 0.0001746895,
+      "log1p_iqr": 5.29783e-05,
+      "n_real_frames": 620284
+    },
+    "12_kappa_frag": {
+      "strategy": "log1p_robust",
+      "log1p_median": 3.081404686,
+      "log1p_q1": 2.7602186203,
+      "log1p_q3": 3.4532034397,
+      "log1p_iqr": 0.6929848194,
+      "n_real_frames": 620284
+    },
+    "6_h_signed": {
+      "strategy": "zscore",
+      "mean": 739342090240.0,
+      "std": 45390799831040.0,
+      "n_real_frames": 620284
+    },
+    "8_Psi": {
+      "strategy": "zscore",
+      "mean": 0.8091050386,
+      "std": 0.0430164225,
+      "n_real_frames": 620284
+    },
+    "11_Jolt": {
+      "strategy": "clip_zscore",
+      "clip_sigma": 5.0,
+      "clip_bound_abs": 65883030.0,
+      "mean_post_clip": 4828.876953125,
+      "std_post_clip": 9886620.0,
+      "n_clipped_frames": 3511,
+      "n_real_frames": 620284,
+      "reliability_note": "Second derivative of signed helicity. Use with caution \u2014 sparse signal near data gaps."
+    },
+    "13_Fallback": {
+      "strategy": "none",
+      "note": "Binary diagnostic flag (0=primary mask, 1=fallback mask). Not normalized."
+    }
+  }
+}
