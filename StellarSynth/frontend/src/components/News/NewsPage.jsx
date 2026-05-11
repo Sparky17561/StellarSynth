@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ExternalLink, Clock, Rss } from 'lucide-react';
 import './NewsPage.css';
 
-const API = 'http://localhost:8000/api/news/';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API = `${API_BASE}/api/news/`;
 
 const formatDate = (d) => {
   try {

@@ -3,9 +3,12 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import os
+# Use cloud DATABASE_URL when available, otherwise local development fallback.
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:abc123@localhost/stellarsynth")
 
-# Assuming default postgres credentials for local dev
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:abc123@localhost/stellarsynth"
+# Some providers expose `postgres://`; SQLAlchemy expects `postgresql://`.
+if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

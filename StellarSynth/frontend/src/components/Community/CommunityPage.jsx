@@ -3,7 +3,8 @@ import { useUser } from '@clerk/clerk-react';
 import { MessageSquare, ThumbsUp, Trash2, Send, Plus, Search, ArrowLeft, ChevronRight } from 'lucide-react';
 import './CommunityPage.css';
 
-const API = 'http://localhost:8000/api/community';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API = `${API_BASE}/api/community`;
 
 // ─── Thread Detail View ──────────────────────────────────────────────────────
 

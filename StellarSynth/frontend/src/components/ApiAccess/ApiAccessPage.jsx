@@ -3,7 +3,7 @@ import { useUser } from '@clerk/clerk-react';
 import { Key, Copy, Trash2, Play, ChevronRight, Code2, Zap, Terminal, BookOpen } from 'lucide-react';
 import './ApiAccessPage.css';
 
-const API = 'http://localhost:8000';
+const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const ENDPOINTS = [
   {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SolarPanel from './SolarPanel';
 import './ChartCard.css';
+const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const HomePage = () => {
   const [insight, setInsight] = useState('Fetching AI insight…');
@@ -8,7 +9,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetch_ = async () => {
       try {
-        const r = await fetch('http://localhost:8000/api/dashboard/insight', {
+        const r = await fetch(`${API}/api/dashboard/insight`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}) // Let backend fetch real NOAA data

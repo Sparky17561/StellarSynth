@@ -2,7 +2,7 @@ fastapi
 uvicorn
 sqlalchemy
 asyncpg
-psycopg2
+psycopg2-binary
 requests
 python-dotenv
 newsapi-python

@@ -49,17 +49,44 @@ export const SolarWindProvider = ({ children }) => {
   };
 
   // Fetch Magnetic Field Data
+  // Note: mag-7-day.json can be >700KB and gets truncated by NOAA CDN sometimes.
+  // Use 1-day endpoint (smaller) and fall back gracefully.
   const fetchMagData = async () => {
-    try {
-      const response = await fetch('https://services.swpc.noaa.gov/products/solar-wind/mag-7-day.json');
-      const rawData = await response.json();
-      const processedData = rawData.slice(1).map(row => ({
-        time: parseNOAADate(row[0]),
-        bz: parseFloat(row[3]) || 0
-      }));
-      setMagData(processedData);
-    } catch (error) {
-      console.error('Error fetching magnetic data:', error);
+    const endpoints = [
+      'https://services.swpc.noaa.gov/products/solar-wind/mag-1-day.json',
+      'https://services.swpc.noaa.gov/products/solar-wind/mag-7-day.json',
+    ];
+    for (const url of endpoints) {
+      try {
+        const response = await fetch(url);
+        const text = await response.text();
+        // Safely parse — NOAA sometimes returns truncated JSON on large payloads
+        let rawData;
+        try {
+          rawData = JSON.parse(text);
+        } catch {
+          // Try to recover by trimming to last complete array entry
+          const lastBracket = text.lastIndexOf('],');
+          if (lastBracket > 0) {
+            try {
+              rawData = JSON.parse(text.slice(0, lastBracket + 1) + ']');
+            } catch {
+              console.warn(`Magnetic data from ${url} could not be parsed even after recovery.`);
+              continue;
+            }
+          } else {
+            continue;
+          }
+        }
+        const processedData = rawData.slice(1).map(row => ({
+          time: parseNOAADate(row[0]),
+          bz: parseFloat(row[3]) || 0
+        }));
+        setMagData(processedData);
+        return; // success — stop trying endpoints
+      } catch (error) {
+        console.error(`Error fetching magnetic data from ${url}:`, error);
+      }
     }
   };
 

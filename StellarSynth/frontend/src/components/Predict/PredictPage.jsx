@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import './PredictPage.css';
 
-const API = 'http://localhost:8000/api/predict';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API = `${API_BASE}/api/predict`;
 
 const FIELD_DEFS = [
   { key: 'E_free', label: 'Free Energy (E_free)', unit: 'J', placeholder: '1e24', description: 'Total free magnetic energy in the active region' },

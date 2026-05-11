@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
@@ -12,10 +13,12 @@ from modules.apikeys import router as apikeys_router
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="StellarSynth API")
+frontend_url = os.getenv("FRONTEND_URL", "*")
+allow_origins = [o.strip() for o in frontend_url.split(",")] if frontend_url != "*" else ["*"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace with frontend URL
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
