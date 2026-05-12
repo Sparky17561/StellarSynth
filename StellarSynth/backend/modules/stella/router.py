@@ -68,10 +68,52 @@ def build_prediction_context() -> dict:
     - top_ars: sorted list of (ar_num, probability, flagged, ...)
     - kp_current, xray_flux
     - source: 'AthenaCTGRU' or 'heuristic'
+    Always enriches ARs with live NOAA solar region metadata (Zurich class,
+    mag class, area, location, num_spots) for accurate 'Why' explanations.
     """
     # Try realtime API first (covers both live ML and heuristic fallback)
     api_data = fetch_realtime_prediction_api()
     ml_file  = fetch_live_ml_predictions()
+
+    # Fetch live NOAA solar region metadata for enrichment
+    noaa_regions = fetch_noaa_solar_regions()
+    # Build lookup: region number (str) -> region metadata dict
+    noaa_region_map: dict = {}
+    for reg in noaa_regions:
+        num = str(reg.get("region", "")).strip()
+        if num:
+            noaa_region_map[num] = reg
+
+    def enrich_ar(ar_num: str, ar_data: dict) -> dict:
+        """
+        Merge ML prediction data with live NOAA solar region metadata.
+        NOAA keys: zurich, magtype, area, location, numspot, extent.
+        """
+        noaa = noaa_region_map.get(ar_num.lstrip("0"), {})
+        # Also try zero-padded match
+        if not noaa:
+            noaa = noaa_region_map.get(ar_num, {})
+        zurich   = noaa.get("zurich") or ar_data.get("zurich_class") or "?"
+        magtype  = noaa.get("magtype") or ar_data.get("mag_class") or "?"
+        area     = noaa.get("area") or ar_data.get("area")
+        location = noaa.get("location", "")
+        numspot  = noaa.get("numspot") or ar_data.get("num_spots")
+        return {
+            "ar": ar_num,
+            "probability_24h": round(ar_data.get("probability_24h", 0) * 100, 1)
+                               if ar_data.get("probability_24h", 0) <= 1
+                               else round(ar_data.get("probability_24h", 0), 1),
+            "flagged":      ar_data.get("flagged", False),
+            "zurich_class": zurich,
+            "mag_class":    magtype,
+            "area":         area,
+            "location":     location,
+            "num_spots":    numspot,
+            "mu":           ar_data.get("mu"),
+            "log_sigma":    ar_data.get("log_sigma"),
+            "cycle_phase":  ar_data.get("cycle_phase"),
+            "noaa_matched": bool(noaa),
+        }
 
     ctx = {
         "timestamp": None,
@@ -99,18 +141,7 @@ def build_prediction_context() -> dict:
                 key=lambda kv: kv[1].get("probability_24h", 0),
                 reverse=True
             )
-            ctx["top_ars"] = [
-                {
-                    "ar": k,
-                    "probability_24h": round(v.get("probability_24h", 0) * 100, 1),
-                    "flagged": v.get("flagged", False),
-                    "zurich_class": v.get("zurich_class", "?"),
-                    "mag_class": v.get("mag_class", "?"),
-                    "area": v.get("area"),
-                    "mu": v.get("mu"),
-                }
-                for k, v in sorted_ars[:5]
-            ]
+            ctx["top_ars"] = [enrich_ar(k, v) for k, v in sorted_ars[:5]]
 
         # Determine source label
         note_lower = ctx["note"].lower()
@@ -130,17 +161,7 @@ def build_prediction_context() -> dict:
             key=lambda kv: kv[1].get("probability_24h", 0),
             reverse=True
         )
-        ctx["top_ars"] = [
-            {
-                "ar": k,
-                "probability_24h": round(v.get("probability_24h", 0) * 100, 1),
-                "flagged": v.get("flagged", False),
-                "mu": v.get("mu"),
-                "log_sigma": v.get("log_sigma"),
-                "cycle_phase": v.get("cycle_phase"),
-            }
-            for k, v in sorted_ars[:5]
-        ]
+        ctx["top_ars"] = [enrich_ar(k, v) for k, v in sorted_ars[:5]]
         ctx["source"] = "AthenaCTGRU ML Pipeline (file)"
         ctx["timestamp"] = ml_file.get("timestamp")
 
@@ -148,6 +169,23 @@ def build_prediction_context() -> dict:
 
 
 # ─── NOAA Data Fetchers ──────────────────────────────────────────────────────
+
+def fetch_noaa_solar_regions() -> list:
+    """
+    Fetch live NOAA solar region summary.
+    Returns list of dicts with region, zurich, magtype, area, location, numspot fields.
+    """
+    try:
+        r = requests.get(
+            "https://services.swpc.noaa.gov/json/solar_regions.json",
+            timeout=6,
+        )
+        if r.status_code == 200:
+            return r.json()[:15]
+    except Exception as e:
+        logger.warning(f"Could not fetch solar_regions for enrichment: {e}")
+    return []
+
 
 def fetch_current_solar_wind():
     try:
@@ -314,28 +352,130 @@ def prediction_context_to_text(pred: dict) -> str:
         lines.append("\nTop Active Regions (by ML probability):")
         for ar in top:
             flag = "⚠️ FLAGGED" if ar.get("flagged") else ""
-            z = ar.get("zurich_class", "")
-            m = ar.get("mag_class", "")
-            a = ar.get("area", 0)
-            class_str = f" [Zurich: {z} / Mag: {m} / Area: {a}]" if z or m else ""
-            
+            z = ar.get("zurich_class", "") or ""
+            m = ar.get("mag_class", "") or ""
+            a = ar.get("area") or ""
+            loc = ar.get("location", "") or ""
+            ns = ar.get("num_spots") or ""
+
+            # Build classification string — only show fields that are actually known
+            class_parts = []
+            if z and z not in ("?", "None", ""): class_parts.append(f"Zurich: {z}")
+            if m and m not in ("?", "None", ""): class_parts.append(f"Mag: {m}")
+            if a: class_parts.append(f"Area: {a} μhm")
+            if loc: class_parts.append(f"Loc: {loc}")
+            if ns: class_parts.append(f"Spots: {ns}")
+            class_str = (" [" + " / ".join(class_parts) + "]") if class_parts else ""
+
+            # Model internal signals
             mu = ar.get("mu")
             sig = ar.get("log_sigma")
-            energy_str = ""
-            if mu is not None and mu > 3: energy_str += " (High energy flux)"
-            if sig is not None and sig > 0.5: energy_str += " (High uncertainty/volatility)"
-            
+            cp  = ar.get("cycle_phase")
+            signal_parts = []
+            if mu is not None and mu > 3:
+                signal_parts.append(f"μ={mu:.2f} → High log-energy flux")
+            if sig is not None and sig > 0.5:
+                signal_parts.append(f"σ={sig:.2f} → High prediction uncertainty/volatility")
+            if cp is not None:
+                pct = round(cp * 100, 1)
+                signal_parts.append(f"cycle_phase={pct}% (Solar cycle position)")
+            ml_signals = ("  ML signals: " + "; ".join(signal_parts)) if signal_parts else ""
+
             lines.append(
-                f"  • AR {ar['ar']}{class_str}: {ar['probability_24h']}% 24h prob {flag}{energy_str}"
+                f"  • AR {ar['ar']}{class_str}: {ar['probability_24h']}% 24h flare prob {flag}"
             )
+            if ml_signals:
+                lines.append(f"    {ml_signals}")
 
     if pred.get("note"):
         lines.append(f"\nNote: {pred['note']}")
-        
-    lines.append("\nTOP 3 RISK DRIVERS (Use this to answer 'Why' questions):")
-    lines.append("1. Active Regions with high probability, complex magnetic class, or high energy flux.")
-    lines.append("2. Recent X-ray flux class (if M or X, risk is already elevated).")
-    lines.append("3. Elevated Kp index (geomagnetic storming).")
+
+    # ── Dynamic 'Why' context — generated from actual data, not hardcoded ──
+    lines.append("\nACTUAL RISK DRIVERS (answer 'Why' questions ONLY from these — do NOT use generic statements):")
+    risk_drivers = []
+
+    # Driver 1: Lead AR with ML probability and physical class
+    if top:
+        lead = top[0]
+        ar_id   = lead["ar"]
+        prob    = lead["probability_24h"]
+        z_str   = lead.get("zurich_class", "")
+        m_str   = lead.get("mag_class", "")
+        a_val   = lead.get("area") or ""
+        mu_val  = lead.get("mu")
+        matched = lead.get("noaa_matched", False)
+        noaa_tag = " (NOAA-confirmed)" if matched else " (ML-inferred)"
+        driver = f"AR {ar_id}{noaa_tag} is the dominant risk contributor at {prob}% 24h probability"
+        physical = []
+        if z_str and z_str not in ("?", "None", ""):
+            physical.append(f"Zurich class {z_str}")
+        if m_str and m_str not in ("?", "None", ""):
+            physical.append(f"magnetic configuration {m_str}")
+        if a_val:
+            physical.append(f"area {a_val} μhm")
+        if mu_val is not None and mu_val > 3:
+            physical.append(f"high log-energy flux (μ={mu_val:.2f})")
+        if physical:
+            driver += " — physical signals: " + ", ".join(physical)
+        risk_drivers.append(driver + ".")
+
+    # Driver 2: X-ray flux
+    xf = pred.get("xray_flux")
+    if xf:
+        cls = xray_class_label(xf)
+        if cls in ("X", "M"):
+            risk_drivers.append(
+                f"X-ray flux is elevated at {xf:.2e} W/m² (Class {cls}) — this independently elevates risk."
+            )
+        elif cls == "C":
+            risk_drivers.append(
+                f"X-ray flux is Class C ({xf:.2e} W/m²) — moderate background activity observed."
+            )
+        else:
+            risk_drivers.append(
+                f"X-ray flux is low at {xf:.2e} W/m² (Class {cls}) — background activity quiet."
+            )
+    else:
+        risk_drivers.append("X-ray flux data unavailable from GOES at this time.")
+
+    # Driver 3: Kp index
+    kp = pred.get("kp_current")
+    if kp is not None:
+        if kp >= 6:
+            risk_drivers.append(
+                f"Kp index is {kp:.1f} — active geomagnetic storm conditions, compounding flare risk."
+            )
+        elif kp >= 4:
+            risk_drivers.append(
+                f"Kp index is {kp:.1f} — active conditions, elevated geomagnetic background."
+            )
+        else:
+            risk_drivers.append(
+                f"Kp index is {kp:.1f} — geomagnetically quiet, not amplifying flare risk."
+            )
+    else:
+        risk_drivers.append("Kp index data unavailable from NOAA at this time.")
+
+    # Driver 4: Secondary ARs if meaningful
+    if len(top) > 1:
+        secondary = top[1]
+        s_prob = secondary["probability_24h"]
+        s_id   = secondary["ar"]
+        if s_prob > 10:
+            risk_drivers.append(
+                f"Secondary region AR {s_id} also contributes at {s_prob}% 24h probability — multi-region activity."
+            )
+
+    for i, d in enumerate(risk_drivers, 1):
+        lines.append(f"{i}. {d}")
+
+    # ── Historical reference table (for comparison questions) ──
+    lines.append("\nHISTORICAL REFERENCE TABLE (use ONLY these for comparisons):")
+    lines.append("  - Halloween 2003: X17/X10, Kp=9, severe HF blackout, power grid impact in Sweden.")
+    lines.append("  - March 1989: X15, Kp=9, Quebec blackout (9h), auroras to Cuba.")
+    lines.append("  - July 2012: X1.4 (missed Earth), estimated Kp=9+ if geoeffective, extreme GNSS impact.")
+    lines.append("  - September 2017: X9.3+X8.2, HF blackout, GNSS errors up to 50m.")
+    lines.append("  - Carrington 1859: Estimated X45+, telegraphs failed worldwide, Kp off-scale.")
 
     return "\n".join(lines)
 
@@ -347,16 +487,16 @@ STELLA_BASE_SYSTEM = """You are Stella ✨ — StellarSynth's AI space weather a
 STRICT RULES (never break these):
 1. ALWAYS lead your response with the latest ML prediction timestamp and risk band (e.g., "As of [timestamp], the current flare risk is [Band]...").
 2. NEVER generate or guess flare probabilities. Only quote numbers from the [ML Prediction] block above. If you have no prediction data, say so clearly.
-3. For "Why" questions: Extract the top 3 contributing signals from the AR data (e.g., zurich_class, mag_class, probability, high energy flux) and telemetry.
+3. For "Why" questions: MANDATORY — use ONLY the numbered points in the "ACTUAL RISK DRIVERS" section below. Do NOT write generic boilerplate like "top signals include active regions and X-ray flux". Instead, name specific AR numbers, exact probabilities, and their measured physical signals (log-energy flux mu, prediction uncertainty sigma, solar cycle phase, Zurich class, magnetic configuration). If a region is marked "(ML-inferred)", explain that the AthenaCTGRU model detected this AR in its 36h SHARP magnetogram window, but it is no longer listed in NOAA's current active region catalog.
 4. If asked about a flare window (12h/24h/36h/48h), explain that the 24h probabilities are what the ML model outputs. You cannot give 12h or 36h numbers directly — use 24h as proxy.
-5. Historical comparisons MUST use the provided reference table (Halloween 2003, March 1989, Carrington 1859, July 2012, September 2017). Never fabricate outcomes.
+5. Historical comparisons MUST use ONLY the entries in the "HISTORICAL REFERENCE TABLE" section below. Never fabricate outcomes or invent X-class/Kp values.
 6. If a question is outside scope (cooking, code, general knowledge, etc.), politely redirect.
 
 RESPONSE FORMAT (always follow this structure for solar/prediction questions):
 **🔴 Current Risk** — [QUIET/MODERATE/STRONG] ([score]%) as of [timestamp]
-**🔍 Why** — [Top 2-3 signals: e.g., AR 13467 (beta-gamma) at 43%, X-ray rising to M-class, Kp=4.2]
-**📚 Historical Similarity** — [brief comparison to known events, only if clearly relevant]
-**⚡ Action/Impact** — [one line: what this means for radio/GNSS/satellites/auroras]
+**🔍 Why** — [Cite specific AR numbers, exact probabilities, and measured signals from ACTUAL RISK DRIVERS — NO generic text]
+**📚 Historical Similarity** — [Only if a matching event exists in HISTORICAL REFERENCE TABLE; otherwise say "No close historical analog at this risk level"]
+**⚡ Action/Impact** — [Specific impact tied to the current Kp and X-ray class: radio blackout band, GNSS accuracy loss, aurora latitude]
 **📡 Sources** — StellarSynth AthenaCTGRU · NOAA SWPC · GOES
 
 For simple factual or historical questions, you may use a shorter format — but always ground answers in the prediction data when available.
@@ -406,6 +546,69 @@ def build_noaa_context() -> str:
     return "\n".join(parts) if parts else "NOAA telemetry temporarily unavailable."
 
 
+# ─── NOAA Flare Report Fetcher ───────────────────────────────────────────────
+
+def fetch_flare_reports() -> list:
+    """
+    Fetch the latest solar flare events from NOAA SWPC.
+    Returns a list of flare event dicts (pure JSON, no ML inference).
+    """
+    urls = [
+        "https://services.swpc.noaa.gov/json/goes/primary/xray-flares-latest.json",
+        "https://services.swpc.noaa.gov/json/solar_regions.json",
+    ]
+    results = {}
+    # Flare events
+    try:
+        r = requests.get(
+            "https://services.swpc.noaa.gov/json/goes/primary/xray-flares-latest.json",
+            timeout=6,
+        )
+        if r.status_code == 200:
+            flares = r.json()
+            results["flares"] = flares[:20]  # last 20 events
+        else:
+            results["flares"] = []
+    except Exception as e:
+        logger.warning(f"Could not fetch flare events: {e}")
+        results["flares"] = []
+
+    # Solar region summary (active regions)
+    try:
+        r2 = requests.get(
+            "https://services.swpc.noaa.gov/json/solar_regions.json",
+            timeout=6,
+        )
+        if r2.status_code == 200:
+            regions = r2.json()
+            results["solar_regions"] = regions[:15]
+        else:
+            results["solar_regions"] = []
+    except Exception as e:
+        logger.warning(f"Could not fetch solar regions: {e}")
+        results["solar_regions"] = []
+
+    # Geomagnetic storm forecast
+    try:
+        r3 = requests.get(
+            "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json",
+            timeout=6,
+        )
+        if r3.status_code == 200:
+            kp_forecast_raw = r3.json()
+            # First row is header
+            header = kp_forecast_raw[0] if kp_forecast_raw else []
+            rows = kp_forecast_raw[1:] if len(kp_forecast_raw) > 1 else []
+            results["kp_forecast"] = [dict(zip(header, row)) for row in rows[:24]]
+        else:
+            results["kp_forecast"] = []
+    except Exception as e:
+        logger.warning(f"Could not fetch Kp forecast: {e}")
+        results["kp_forecast"] = []
+
+    return results
+
+
 # ─── Status Endpoint ─────────────────────────────────────────────────────────
 
 @router.get("/status")
@@ -430,6 +633,47 @@ def stella_status():
             "top_ars": pred.get("top_ars", []),
         },
         "refreshed_at": datetime.utcnow().isoformat() + "Z",
+    }
+
+
+# ─── Flare Reports Endpoint (pure NOAA JSON, no ML) ─────────────────────────
+
+@router.get("/flare-reports")
+def get_flare_reports():
+    """
+    Returns raw NOAA flare events, active solar regions, and Kp forecast.
+    No ML prediction — data is fetched directly from NOAA SWPC JSON feeds.
+    """
+    data = fetch_flare_reports()
+    return {
+        "flares": data.get("flares", []),
+        "solar_regions": data.get("solar_regions", []),
+        "kp_forecast": data.get("kp_forecast", []),
+        "fetched_at": datetime.utcnow().isoformat() + "Z",
+        "source": "NOAA SWPC (live JSON feeds)",
+    }
+
+
+# ─── NOAA Live Telemetry Endpoint (pure JSON, no ML) ────────────────────────
+
+@router.get("/noaa-live")
+def get_noaa_live():
+    """
+    Returns current solar wind, Kp index, X-ray flux, and NOAA alerts.
+    Purely fetched from NOAA — no ML inference involved.
+    """
+    sw = fetch_current_solar_wind()
+    kp = fetch_kp_index()
+    xray = fetch_xray_latest()
+    alerts = fetch_noaa_alerts()
+    return {
+        "solar_wind": sw,
+        "kp_index": kp,
+        "xray_flux": xray,
+        "xray_class": xray_class_label(xray),
+        "alerts": alerts,
+        "fetched_at": datetime.utcnow().isoformat() + "Z",
+        "source": "NOAA SWPC (live JSON feeds)",
     }
 
 

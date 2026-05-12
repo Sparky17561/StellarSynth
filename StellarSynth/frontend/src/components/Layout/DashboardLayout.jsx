@@ -71,15 +71,20 @@ const DashboardLayout = () => {
           <UserButton afterSignOutUrl="/" />
         </header>
 
-        <div className="page-container">
-          <div className="page-header">
-            <h1 className="page-title">{title}</h1>
-            {sub && <p className="page-subtitle">{sub}</p>}
+        {location.pathname === '/stella' ? (
+          // Stella fills remaining viewport exactly — no padding, no title
+          <div className="stella-fill">
+            <Outlet />
           </div>
-          
-          {/* This renders the current nested route component */}
-          <Outlet />
-        </div>
+        ) : (
+          <div className="page-container">
+            <div className="page-header">
+              <h1 className="page-title">{title}</h1>
+              {sub && <p className="page-subtitle">{sub}</p>}
+            </div>
+            <Outlet />
+          </div>
+        )}
       </main>
     </div>
   );

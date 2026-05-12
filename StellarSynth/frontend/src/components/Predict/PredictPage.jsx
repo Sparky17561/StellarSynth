@@ -1,72 +1,91 @@
-import React, { useState, useEffect } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, ReferenceLine,
+} from 'recharts';
 import './PredictPage.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const API = `${API_BASE}/api/predict`;
 
-const FIELD_DEFS = [
-  { key: 'E_free', label: 'Free Energy (E_free)', unit: 'J', placeholder: '1e24', description: 'Total free magnetic energy in the active region' },
-  { key: 'Phi_HED', label: 'Helicity Energy Density (Φ_HED)', unit: '', placeholder: '0.5', description: 'Normalized helicity energy density' },
-  { key: 'J_total', label: 'Total Current (J_total)', unit: 'A', placeholder: '5.0', description: 'Total vertical electric current' },
-  { key: 'J_z', label: 'Net Current (J_z)', unit: 'A', placeholder: '2.0', description: 'Net vertical electric current' },
-  { key: 'h_total', label: 'Total Helicity (h_total)', unit: '', placeholder: '0.8', description: 'Total relative helicity' },
-  { key: 'H_c', label: 'Current Helicity (H_c)', unit: '', placeholder: '0.3', description: 'Current-carrying helicity' },
-  { key: 'h_signed', label: 'Signed Helicity (h_signed)', unit: '', placeholder: '-0.4', description: 'Signed magnetic helicity' },
-  { key: 'alpha', label: 'Alpha (α)', unit: '', placeholder: '0.1', description: 'Force-free field parameter' },
-  { key: 'Psi', label: 'Twist Flux (Ψ)', unit: '', placeholder: '0.2', description: 'Magnetic flux twist parameter' },
-  { key: 'grad_Bh', label: '∇Bh', unit: '', placeholder: '3.5', description: 'Horizontal field gradient' },
-  { key: 'S_HED', label: 'Signed HED (S_HED)', unit: '', placeholder: '0.1', description: 'Signed helicity energy density' },
-  { key: 'Jolt', label: 'Jolt', unit: '', placeholder: '0.5', description: 'Rapid photospheric field change' },
-  { key: 'kappa_frag', label: 'Fragmentation (κ_frag)', unit: '', placeholder: '0.2', description: 'Active region fragmentation' },
-  { key: 'hgc_x', label: 'HGC X Position', unit: 'deg', placeholder: '10.0', description: 'Heliographic Carrington longitude' },
-  { key: 'hgc_y', label: 'HGC Y Position', unit: 'deg', placeholder: '-5.0', description: 'Heliographic Carrington latitude' },
-  { key: 'cycle_phase', label: 'Solar Cycle Phase', unit: '', placeholder: '0.7', description: 'Phase in current solar cycle (0–1)' },
-];
+/* ─── Weighted global risk (area-weighted if area available, else prob-weighted) ─── */
+function computeWeightedRisk(data) {
+  if (!data || !Object.keys(data).length) return null;
+  const entries = Object.values(data);
 
-const DEFAULT_VALS = {
-  E_free: 1e24, Phi_HED: 0.5, J_total: 5.0, J_z: 2.0, h_total: 0.8,
-  H_c: 0.3, h_signed: -0.4, alpha: 0.1, Psi: 0.2, grad_Bh: 3.5,
-  S_HED: 0.1, Jolt: 0.5, kappa_frag: 0.2, hgc_x: 10.0, hgc_y: -5.0, cycle_phase: 0.7
+  // Try area-weighted first
+  const totalArea = entries.reduce((s, v) => s + (parseFloat(v.area) || 0), 0);
+  if (totalArea > 0) {
+    const weighted = entries.reduce((s, v) => {
+      const w = (parseFloat(v.area) || 1) / totalArea;
+      return s + w * (v.probability_24h || 0);
+    }, 0);
+    return weighted;
+  }
+
+  // Fallback: plain average
+  const sum = entries.reduce((s, v) => s + (v.probability_24h || 0), 0);
+  return sum / entries.length;
+}
+
+/* ─── Ring gauge SVG ─── */
+const RingGauge = ({ prob, color, size = 72 }) => {
+  const r = (size - 10) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - Math.min(prob, 1));
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f1f5f9" strokeWidth={7} />
+      <circle
+        cx={size / 2} cy={size / 2} r={r} fill="none"
+        stroke={color} strokeWidth={7}
+        strokeDasharray={circ}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+      />
+    </svg>
+  );
 };
 
-const ProbabilityBar = ({ prob }) => {
-  const pct = Math.round(prob * 100);
-  const color = prob > 0.7 ? '#ef4444' : prob > 0.53 ? '#f97316' : prob > 0.3 ? '#facc15' : '#22c55e';
-  const label = prob > 0.7 ? 'HIGH RISK' : prob > 0.53 ? 'MODERATE' : prob > 0.3 ? 'LOW' : 'QUIET';
+/* ─── Probability helpers ─── */
+const probMeta = (p) => {
+  if (p >= 0.7) return { color: '#e53e3e', label: 'HIGH RISK', bg: '#fff5f5', badge: '#fed7d7', text: '#c53030' };
+  if (p >= 0.53) return { color: '#dd6b20', label: 'ELEVATED', bg: '#fffbeb', badge: '#fbd38d', text: '#744210' };
+  if (p >= 0.35) return { color: '#d97706', label: 'MODERATE', bg: '#fffbeb', badge: '#fde68a', text: '#92400e' };
+  return { color: '#16a34a', label: 'QUIET', bg: '#f0fdf4', badge: '#bbf7d0', text: '#166534' };
+};
+
+/* ─── Custom tooltip ─── */
+const ChartTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
   return (
-    <div className="prob-container">
-      <div className="prob-header">
-        <span className="prob-label">24h Flare Probability</span>
-        <span className="prob-pct" style={{ color }}>{pct}%</span>
+    <div style={{
+      background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
+      padding: '0.6rem 0.9rem', fontSize: '0.78rem', color: '#1a202c',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+    }}>
+      <div style={{ fontWeight: 600, marginBottom: 4, color: '#64748b' }}>
+        {new Date(label).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
       </div>
-      <div className="prob-track">
-        <div className="prob-fill" style={{ width: `${pct}%`, background: color }} />
-      </div>
-      <div className="prob-status" style={{ color }}>{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} style={{ color: p.color, fontWeight: 600 }}>
+          {p.name}: {(p.value * 100).toFixed(1)}%
+        </div>
+      ))}
     </div>
   );
 };
 
 const PredictPage = () => {
-  const [tab, setTab] = useState('manual');
-  const [fields, setFields] = useState(DEFAULT_VALS);
-  const [result, setResult] = useState(null);
-  const [running, setRunning] = useState(false);
   const [autoResult, setAutoResult] = useState(null);
-  const [autoLoading, setAutoLoading] = useState(false);
+  const [autoLoading, setAutoLoading] = useState(true);
   const [history, setHistory] = useState([]);
+  const [pipelineStatus, setPipelineStatus] = useState(null);
   const [lookbackHours, setLookbackHours] = useState(36);
+  const [pipelineOpen, setPipelineOpen] = useState(false);
 
-  const fetchHistory = async () => {
-    try {
-      const res = await fetch(`${API}/history`);
-      const data = await res.json();
-      setHistory(data);
-    } catch (e) { console.error(e); }
-  };
-
-  const fetchAuto = async () => {
+  const fetchAuto = useCallback(async () => {
     setAutoLoading(true);
     try {
       const res = await fetch(`${API}/realtime`);
@@ -74,11 +93,17 @@ const PredictPage = () => {
       setAutoResult(data);
     } catch (e) { console.error(e); }
     finally { setAutoLoading(false); }
-  };
+  }, []);
 
-  const [pipelineStatus, setPipelineStatus] = useState(null);
-  
-  const pollPipeline = async () => {
+  const fetchHistory = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/history`);
+      const data = await res.json();
+      setHistory(Array.isArray(data) ? data : []);
+    } catch (e) { console.error(e); }
+  }, []);
+
+  const pollPipeline = useCallback(async () => {
     try {
       const res = await fetch(`${API}/pipeline-status`);
       const data = await res.json();
@@ -86,295 +111,300 @@ const PredictPage = () => {
       if (data.status === 'starting' || data.status === 'running') {
         setTimeout(pollPipeline, 2000);
       } else if (data.status === 'completed') {
-        fetchAuto(); // Refresh real results when done
+        fetchAuto();
+        fetchHistory();
       }
     } catch (e) {
-      console.error(e);
       setTimeout(pollPipeline, 5000);
     }
-  };
+  }, [fetchAuto, fetchHistory]);
 
   const triggerPipeline = async () => {
     try {
-      await fetch(`${API}/run-pipeline`, { 
+      await fetch(`${API}/run-pipeline`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ history_hours: lookbackHours })
+        body: JSON.stringify({ history_hours: lookbackHours }),
       });
-      setPipelineStatus({ status: 'starting', progress: 0, message: `Initializing ${lookbackHours}h window...` });
+      setPipelineStatus({ status: 'starting', progress: 0, message: `Initializing ${lookbackHours}h window…` });
       pollPipeline();
     } catch (e) { console.error(e); }
   };
 
   useEffect(() => {
-    pollPipeline();
+    fetchAuto();
     fetchHistory();
+    pollPipeline();
   }, []);
 
-  useEffect(() => {
-    if (tab === 'auto') {
-      fetchAuto();
-      fetchHistory();
-    }
-  }, [tab]);
+  // Computed values
+  const arData = autoResult?.data || {};
+  const arEntries = Object.entries(arData).sort(
+    ([, a], [, b]) => (b.probability_24h || 0) - (a.probability_24h || 0)
+  );
+  const weightedRisk = computeWeightedRisk(arData);
+  const globalStatus = autoResult?.global_status || 'QUIET';
+  const globalMeta = probMeta(weightedRisk ?? 0);
 
-  const handleManual = async (e) => {
-    e.preventDefault();
-    setRunning(true);
-    setResult(null);
-    try {
-      const res = await fetch(`${API}/simulation`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fields)
-      });
-      const data = await res.json();
-      setResult(data);
-    } catch (e) { console.error(e); }
-    finally { setRunning(false); }
-  };
+  // Chart data — only from DB history
+  const chartData = [...history]
+    .reverse()
+    .slice(-60)
+    .map(h => ({
+      timestamp: h.timestamp,
+      probability: h.probability ?? h.global_score ?? 0,
+    }));
+  const hasHistory = chartData.length > 1;
+
+  const isPipelineRunning = pipelineStatus?.status === 'starting' || pipelineStatus?.status === 'running';
 
   return (
     <div className="predict-page">
-      <div className="predict-hero">
-        <h1>Solar Flare Predictor</h1>
-        <p>Physics-informed SHARP heuristic — AthenaCTGRU checkpoint integration pending</p>
-        <div className="predict-tabs">
-          <button className={`ptab${tab === 'manual' ? ' active' : ''}`} onClick={() => setTab('manual')}>
-            Manual Input
-          </button>
-          <button className={`ptab${tab === 'auto' ? ' active' : ''}`} onClick={() => setTab('auto')}>
-            Auto Prediction (Live)
-          </button>
+
+      {/* ══ HERO: Weighted Global Risk ══ */}
+      <div className="predict-hero-card" style={{ background: globalMeta.bg, borderColor: globalMeta.badge }}>
+        <div className="predict-hero-left">
+          <div className="predict-hero-label">Global Flare Risk · Area-Weighted</div>
+          <div className="predict-hero-status" style={{ color: globalMeta.color }}>
+            {globalStatus}
+          </div>
+          <div className="predict-hero-score" style={{ color: globalMeta.text }}>
+            {weightedRisk != null ? `${(weightedRisk * 100).toFixed(1)}%` : '—'} weighted probability
+          </div>
+          <div className="predict-hero-sub">
+            {arEntries.length} active region{arEntries.length !== 1 ? 's' : ''} tracked
+            {autoResult?.note && (
+              <span className="predict-source-pill">⚡ {autoResult.note.split('.')[0]}</span>
+            )}
+          </div>
+        </div>
+        <div className="predict-hero-ring">
+          <RingGauge prob={weightedRisk ?? 0} color={globalMeta.color} size={96} />
+          <div className="predict-ring-label" style={{ color: globalMeta.color }}>
+            {weightedRisk != null ? `${(weightedRisk * 100).toFixed(0)}%` : '—'}
+          </div>
         </div>
       </div>
 
-      {tab === 'manual' && (
-        <div className="predict-manual">
-          <form className="predict-form" onSubmit={handleManual}>
-            <div className="predict-fields-grid">
-              {FIELD_DEFS.map(f => (
-                <div key={f.key} className="predict-field">
-                  <label>{f.label} {f.unit && <span className="unit">{f.unit}</span>}</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={fields[f.key]}
-                    onChange={e => setFields(prev => ({ ...prev, [f.key]: parseFloat(e.target.value) || 0 }))}
-                    placeholder={f.placeholder}
-                    title={f.description}
-                  />
-                  <p className="field-desc">{f.description}</p>
-                </div>
-              ))}
-            </div>
-            <button type="submit" className="predict-run-btn" disabled={running}>
-              {running ? 'Running Model…' : '⚡ Run Prediction'}
-            </button>
-          </form>
-
-          {result && (
-            <div className="predict-result-card">
-              <h3>Prediction Result</h3>
-              <ProbabilityBar prob={result.probability_24h} />
-              <div className="predict-result-row">
-                <span>Flagged for X/M-class</span>
-                <span className={result.flagged ? 'flag-yes' : 'flag-no'}>{result.flagged ? '⚠️ YES' : '✅ NO'}</span>
-              </div>
-              <div className="predict-model-note">
-                <span>🔬 {result.model}</span>
-              </div>
-              <p className="predict-note">{result.details}</p>
-            </div>
-          )}
+      {/* ══ AR Cards ══ */}
+      {autoLoading ? (
+        <div className="predict-loading">
+          <div className="predict-spinner" />
+          <span>Fetching live predictions…</span>
         </div>
-      )}
-
-      {tab === 'auto' && (
-        <div className="predict-auto">
-          <div className="consciousness-banner" style={{ 
-            background: autoResult?.global_status === 'STRONG' ? 'linear-gradient(90deg, #991b1b, #ef4444)' : 
-                        autoResult?.global_status === 'MODERATE' ? 'linear-gradient(90deg, #92400e, #f59e0b)' : 
-                        'linear-gradient(90deg, #064e3b, #10b981)',
-            padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1.5rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{ fontSize: '2.5rem' }}>
-              {autoResult?.global_status === 'STRONG' ? '🔴' : autoResult?.global_status === 'MODERATE' ? '🟠' : '🟢'}
-            </div>
-            <div>
-              <h2 style={{ margin: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Solar Consciousness: {autoResult?.global_status || 'QUIET'}</h2>
-              <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9 }}>Global Risk Score: {(autoResult?.global_score * 100).toFixed(1)}% | Aggregate of {Object.keys(autoResult?.data || {}).length} Active Regions</p>
-            </div>
-          </div>
-
-          <div className="history-graph-panel" style={{ 
-            background: 'linear-gradient(180deg, #0f172a 0%, #020617 100%)', 
-            padding: '2rem', 
-            borderRadius: '16px', 
-            border: '1px solid rgba(59, 130, 246, 0.2)', 
-            marginBottom: '2rem',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 0 15px rgba(59, 130, 246, 0.1)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: 0, color: '#fff', fontSize: '1.25rem', letterSpacing: '0.05em' }}>30-Day Intelligence Aura: Predicted vs Real</h3>
-              <div style={{ fontSize: '0.75rem', color: '#3b82f6', background: 'rgba(59, 130, 246, 0.1)', padding: '0.25rem 0.75rem', borderRadius: '20px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-                LIVE SATELLITE SYNC
-              </div>
-            </div>
-
-            <div style={{ height: '350px', width: '100%' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={[...history].reverse()}>
-                  <defs>
-                    <linearGradient id="colorProb" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                    </linearGradient>
-                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="3" result="blur" />
-                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                    </filter>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                  <XAxis 
-                    dataKey="timestamp" 
-                    tickFormatter={(str) => new Date(str).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} 
-                    stroke="#475569" 
-                    fontSize={10}
-                    tick={{ fill: '#94a3b8' }}
-                  />
-                  <YAxis stroke="#475569" domain={[0, 1]} tick={{ fill: '#94a3b8' }} />
-                  <Tooltip 
-                    contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', color: '#fff' }}
-                    itemStyle={{ color: '#fff' }}
-                  />
-                  <Legend verticalAlign="top" height={36}/>
-                  
-                  <Area 
-                    type="monotone" 
-                    dataKey="probability" 
-                    name="AI Predicted Aura" 
-                    stroke="#3b82f6" 
-                    strokeWidth={3} 
-                    fillOpacity={1} 
-                    fill="url(#colorProb)" 
-                    filter="url(#glow)"
-                  />
-                  
-                  <Area 
-                    type="stepAfter" 
-                    dataKey="actual_outcome" 
-                    name="Real Event Pulse" 
-                    stroke="#ef4444" 
-                    strokeWidth={2} 
-                    fillOpacity={1} 
-                    fill="url(#colorReal)"
-                    strokeDasharray="5 5"
-                  />
-                  
-                  <ReferenceLine y={0.53} label={{ value: 'DANGER ZONE', fill: '#f59e0b', fontSize: 10 }} stroke="#f59e0b" strokeDasharray="3 3" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="auto-header">
-            <div>
-              <h2>Detailed Region Overview</h2>
-              <p>Real-time physical extraction from HMI Magnetograms.</p>
-            </div>
-            <button className="btn-refresh-auto" onClick={fetchAuto} disabled={autoLoading}>
-              {autoLoading ? 'Loading…' : '↺ Refresh Everything'}
-            </button>
-          </div>
-
-          <div className="pipeline-panel" style={{ background: 'rgba(30, 41, 59, 0.5)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <div>
-                <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem', color: '#e2e8f0' }}>Full AthenaCTGRU Pipeline</h3>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>Downloads magnetograms from JSOC, extracts physical tensors, and runs PyTorch inference.</p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                  <label style={{ fontSize: '0.65rem', color: '#94a3b8', marginBottom: '0.2rem', textTransform: 'uppercase' }}>Lookback Window</label>
-                  <select 
-                    value={lookbackHours} 
-                    onChange={(e) => setLookbackHours(parseInt(e.target.value))}
-                    disabled={pipelineStatus?.status === 'starting' || pipelineStatus?.status === 'running'}
-                    style={{ background: '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '4px', padding: '0.25rem 0.5rem', fontSize: '0.8rem', cursor: 'pointer' }}
-                  >
-                    <option value={12}>12 Hours (Fast)</option>
-                    <option value={24}>24 Hours (Standard)</option>
-                    <option value={36}>36 Hours (Deep)</option>
-                  </select>
+      ) : arEntries.length === 0 ? (
+        <div className="predict-empty">
+          <div className="predict-empty-icon">🔭</div>
+          <p>No active regions in the prediction file.</p>
+          <p>Run the pipeline to generate fresh results.</p>
+        </div>
+      ) : (
+        <div className="ar-cards-grid">
+          {arEntries.map(([ar, data], idx) => {
+            const prob = data.probability_24h ?? 0;
+            const meta = probMeta(prob);
+            const pct = Math.round(prob * 100);
+            return (
+              <div key={ar} className="ar-card" style={{ borderTopColor: meta.color }}>
+                <div className="ar-card-top">
+                  <div className="ar-card-id-block">
+                    <span className="ar-rank">#{idx + 1}</span>
+                    <span className="ar-card-id">AR {ar}</span>
+                  </div>
+                  <span className="ar-card-badge" style={{ background: meta.bg, color: meta.text, borderColor: meta.badge }}>
+                    {data.flagged ? '⚠️ Elevated' : '✅ ' + meta.label}
+                  </span>
                 </div>
-                <button 
-                  onClick={triggerPipeline} 
-                  disabled={pipelineStatus?.status === 'starting' || pipelineStatus?.status === 'running'}
-                  style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500, alignSelf: 'flex-end' }}
-                >
-                  {pipelineStatus?.status === 'starting' || pipelineStatus?.status === 'running' ? 'Running...' : 'Run Pipeline'}
-                </button>
-              </div>
-            </div>
-            
-            {(pipelineStatus?.status === 'starting' || pipelineStatus?.status === 'running') && (
-              <div style={{ marginTop: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.25rem' }}>
-                  <span>{pipelineStatus.message}</span>
-                  <span>{pipelineStatus.progress}%</span>
-                </div>
-                <div style={{ width: '100%', height: '6px', background: '#334155', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ width: `${pipelineStatus.progress}%`, height: '100%', background: '#3b82f6', transition: 'width 0.3s ease' }} />
-                </div>
-              </div>
-            )}
-            
-            {pipelineStatus?.status === 'completed' && (
-              <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#22c55e' }}>✅ Pipeline completed successfully. Results updated below.</div>
-            )}
-            
-            {pipelineStatus?.status === 'error' && (
-              <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#ef4444' }}>❌ {pipelineStatus.message}</div>
-            )}
-          </div>
 
-          {!autoLoading && autoResult && autoResult.note && (
-            <div className="predict-model-note" style={{ marginBottom: '1rem' }}>🔬 {autoResult.note}</div>
-          )}
-          {!autoLoading && autoResult && (
-            <div className="auto-grid">
-              {Object.entries(autoResult.data || autoResult)
-                .filter(([k]) => k !== 'note')
-                .map(([ar, data]) => (
-                  <div key={ar} className="auto-card">
-                    <div className="auto-card-header">
-                      <span className="auto-ar-id">AR {ar}</span>
-                      <span className={`auto-badge ${data.flagged ? 'flagged' : 'quiet'}`}>
-                        {data.flagged ? '⚠️ Elevated' : '✅ Quiet'}
-                      </span>
+                <div className="ar-card-body">
+                  <div className="ar-gauge-col">
+                    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <RingGauge prob={prob} color={meta.color} size={80} />
+                      <div className="ar-gauge-pct" style={{ color: meta.color }}>{pct}%</div>
                     </div>
-                    <ProbabilityBar prob={data.probability_24h} />
-                    {data.zurich_class && data.zurich_class !== '—' && (
-                      <div className="auto-meta-row">
-                        <span>Zurich: <strong>{data.zurich_class}</strong></span>
-                        <span>Mag: <strong>{data.mag_class}</strong></span>
+                    <div className="ar-gauge-label">24h Flare Prob</div>
+                  </div>
+
+                  <div className="ar-meta-col">
+                    {data.zurich_class && data.zurich_class !== '?' && (
+                      <div className="ar-meta-row">
+                        <span className="ar-meta-key">Zurich</span>
+                        <span className="ar-meta-val">{data.zurich_class}</span>
                       </div>
                     )}
-                    <div className="auto-meta-row">
-                      {data.area > 0 && <span>Area: {data.area} μhm</span>}
-                      {data.num_spots > 0 && <span>Spots: {data.num_spots}</span>}
-                    </div>
+                    {data.mag_class && data.mag_class !== '?' && (
+                      <div className="ar-meta-row">
+                        <span className="ar-meta-key">Mag class</span>
+                        <span className="ar-meta-val">{data.mag_class}</span>
+                      </div>
+                    )}
+                    {data.area > 0 && (
+                      <div className="ar-meta-row">
+                        <span className="ar-meta-key">Area</span>
+                        <span className="ar-meta-val">{data.area} μhm</span>
+                      </div>
+                    )}
+                    {data.num_spots > 0 && (
+                      <div className="ar-meta-row">
+                        <span className="ar-meta-key">Spots</span>
+                        <span className="ar-meta-val">{data.num_spots}</span>
+                      </div>
+                    )}
+                    {data.mu != null && (
+                      <div className="ar-meta-row">
+                        <span className="ar-meta-key">log-energy μ</span>
+                        <span className="ar-meta-val" style={{ color: data.mu > 3 ? '#dd6b20' : undefined }}>
+                          {data.mu.toFixed(2)} {data.mu > 3 ? '↑' : ''}
+                        </span>
+                      </div>
+                    )}
+                    {data.log_sigma != null && (
+                      <div className="ar-meta-row">
+                        <span className="ar-meta-key">Uncertainty σ</span>
+                        <span className="ar-meta-val" style={{ color: data.log_sigma > 0.5 ? '#dd6b20' : undefined }}>
+                          {data.log_sigma.toFixed(2)} {data.log_sigma > 0.5 ? '↑' : ''}
+                        </span>
+                      </div>
+                    )}
+                    {data.location && (
+                      <div className="ar-meta-row">
+                        <span className="ar-meta-key">Location</span>
+                        <span className="ar-meta-val">{data.location}</span>
+                      </div>
+                    )}
                   </div>
-                ))}
-            </div>
-          )}
+                </div>
+
+                {/* Probability bar */}
+                <div className="ar-prob-track">
+                  <div
+                    className="ar-prob-fill"
+                    style={{ width: `${pct}%`, background: meta.color }}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
+
+      {/* ══ 30-Day History Chart (only if data exists) ══ */}
+      {hasHistory && (
+        <div className="predict-chart-wrap">
+          <div className="predict-chart-header">
+            <div>
+              <h3 className="predict-chart-title">Prediction History</h3>
+              <p className="predict-chart-sub">{chartData.length} records from pipeline runs</p>
+            </div>
+          </div>
+          <div style={{ height: 240 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#0066FF" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#0066FF" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis
+                  dataKey="timestamp"
+                  tickFormatter={(s) => new Date(s).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  stroke="#e2e8f0"
+                  tick={{ fill: '#94a3b8', fontSize: 10 }}
+                />
+                <YAxis
+                  domain={[0, 1]}
+                  tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
+                  stroke="#e2e8f0"
+                  tick={{ fill: '#94a3b8', fontSize: 10 }}
+                  width={38}
+                />
+                <Tooltip content={<ChartTooltip />} />
+                <ReferenceLine
+                  y={0.35}
+                  stroke="#f59e0b"
+                  strokeDasharray="4 4"
+                  label={{ value: 'MODERATE', fill: '#92400e', fontSize: 9, position: 'insideTopRight' }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="probability"
+                  name="Flare Probability"
+                  stroke="#0066FF"
+                  strokeWidth={2}
+                  fill="url(#areaGrad)"
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* ══ Pipeline control (collapsible) ══ */}
+      <div className="pipeline-section">
+        <button
+          className="pipeline-toggle"
+          onClick={() => setPipelineOpen(o => !o)}
+        >
+          <span>⚡ AthenaCTGRU Pipeline</span>
+          <span className={`pipeline-toggle-arrow ${pipelineOpen ? 'open' : ''}`}>›</span>
+        </button>
+
+        {pipelineOpen && (
+          <div className="pipeline-body">
+            <p className="pipeline-desc">
+              Downloads 36h SHARP magnetogram sequences from JSOC, extracts physical tensors, and runs PyTorch inference. Results update the cards above.
+            </p>
+            <div className="pipeline-controls">
+              <div>
+                <label className="pipeline-lbl">Lookback window</label>
+                <select
+                  value={lookbackHours}
+                  onChange={(e) => setLookbackHours(parseInt(e.target.value))}
+                  disabled={isPipelineRunning}
+                  className="pipeline-select"
+                >
+                  <option value={12}>12 h · Fast Snapshot</option>
+                  <option value={24}>24 h · Daily Standard</option>
+                  <option value={32}>32 h · Extended Coverage</option>
+                  <option value={36}>36 h · Deep Sequence</option>
+                  <option value={48}>48 h · Full Dynamic Horizon</option>
+                </select>
+              </div>
+              <button
+                className="pipeline-run-btn"
+                onClick={triggerPipeline}
+                disabled={isPipelineRunning}
+              >
+                {isPipelineRunning ? 'Running…' : '▶ Run Pipeline'}
+              </button>
+            </div>
+
+            {isPipelineRunning && (
+              <div className="pipeline-progress">
+                <div className="pipeline-progress-msg">{pipelineStatus.message}</div>
+                <div className="pipeline-track">
+                  <div
+                    className="pipeline-fill"
+                    style={{ width: `${pipelineStatus.progress}%` }}
+                  />
+                </div>
+                <div className="pipeline-pct">{pipelineStatus.progress}%</div>
+              </div>
+            )}
+
+            {pipelineStatus?.status === 'completed' && (
+              <div className="pipeline-done">✅ Pipeline completed — results updated above.</div>
+            )}
+            {pipelineStatus?.status === 'error' && (
+              <div className="pipeline-error">❌ {pipelineStatus.message}</div>
+            )}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };

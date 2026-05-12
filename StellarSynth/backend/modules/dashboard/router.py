@@ -14,7 +14,7 @@ router = APIRouter()
 # Initialize Groq client
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-from modules.stella.router import build_context, fetch_kp_index
+from modules.stella.router import build_noaa_context, fetch_kp_index
 
 class DashboardData(BaseModel):
     pass # No longer needed, but keeping for backwards compatibility if needed
@@ -27,7 +27,7 @@ def get_dashboard():
 def get_ai_insight():
     try:
         # Fetch actual live telemetry using our existing Stella functions
-        noaa_context = build_context("")
+        noaa_context = build_noaa_context()
         current_kp = fetch_kp_index() or "Unknown"
 
         prompt = f"""
