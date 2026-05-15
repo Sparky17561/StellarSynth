@@ -45,8 +45,6 @@ const LandingPage = () => {
         <h3>Built with passion by</h3>
         <ul className="team-list">
           <li>Dr. Vidyullata Devmane</li>
-          <li>Namrata Mangalani</li>
-          <li>Pallavi Nehete</li>
           <li>Jay Chedda</li>
           <li>Krishita Ravet</li>
           <li>Saiprasad Jamdar</li>

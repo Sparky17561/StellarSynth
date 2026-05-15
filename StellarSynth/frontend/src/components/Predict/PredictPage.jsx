@@ -76,7 +76,7 @@ const isStale = (ts) => {
 const getARIntelligence = (data) => {
   const x = data.hgc_x || 0;
   const prob = data.probability_24h || 0;
-  
+
   let location = "Eastern Limb";
   if (Math.abs(x) < 0.35) location = "Earth Facing (Direct)";
   else if (Math.abs(x) < 0.65) location = "Earth Facing";
@@ -84,7 +84,7 @@ const getARIntelligence = (data) => {
 
   let impact = "Nominal";
   let impactColor = "#64748b";
-  
+
   if (prob > 0.8) {
     impact = "High Radio Risk";
     impactColor = "#ef4444";
@@ -101,10 +101,10 @@ const getARIntelligence = (data) => {
 
 const WINDOW_OPTIONS = [
   { hours: null, label: 'Latest' },
-  { hours: 12,   label: '12h' },
-  { hours: 24,   label: '24h' },
-  { hours: 36,   label: '36h' },
-  { hours: 48,   label: '48h' },
+  { hours: 12, label: '12h' },
+  { hours: 24, label: '24h' },
+  { hours: 36, label: '36h' },
+  { hours: 48, label: '48h' },
 ];
 
 const PredictPage = () => {
@@ -148,7 +148,7 @@ const PredictPage = () => {
   const fetchResult = useCallback(async (win) => {
     setResultLoading(true);
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); 
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
       const url = win === null ? `${API}/realtime` : `${API}/snapshot/${win}`;
       const res = await fetch(url, { signal: controller.signal });
@@ -183,19 +183,19 @@ const PredictPage = () => {
       const data = await res.json();
       if (pollingRef.current === 'STOPPED') return;
       setPipelineStatus(data);
-      
+
       if (data.status === 'starting' || data.status === 'running') {
-        fetchLogs(); 
+        fetchLogs();
         if (pollingRef.current) clearTimeout(pollingRef.current);
         pollingRef.current = setTimeout(pollPipeline, 2000);
       } else if (data.status === 'completed') {
-        fetchLogs(); 
+        fetchLogs();
         fetchResult(activeWindow);
         fetchHistory();
         fetchSnapshots();
         pollingRef.current = null;
       } else if (data.status === 'error') {
-        fetchLogs(); 
+        fetchLogs();
         pollingRef.current = null;
       }
     } catch (e) {
@@ -211,23 +211,23 @@ const PredictPage = () => {
       clearTimeout(pollingRef.current);
     }
     pollingRef.current = 'STOPPED';
-    
+
     try {
       setPipelineStatus(null);
       setLogLines([]);
-      
+
       await fetch(`${API}/reset-pipeline`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ history_hours: targetHours })
       });
-      
+
       // Extended delay to ensure backend file cleanup completes
       setTimeout(() => {
         if (pollingRef.current === 'STOPPED') pollingRef.current = null;
       }, 3000);
-    } catch (e) { 
-      console.error(e); 
+    } catch (e) {
+      console.error(e);
       pollingRef.current = null;
     }
   };
@@ -282,7 +282,7 @@ const PredictPage = () => {
     ([, a], [, b]) => (b.probability_24h || 0) - (a.probability_24h || 0)
   );
   const weightedRisk = computeWeightedRisk(arData);
-  
+
   // Overall Yes/No based on weighted risk > 75%
   const overallYesNo = weightedRisk >= 0.75 ? 'FLARE EXPECTED' : 'NO FLARE';
 
@@ -312,7 +312,7 @@ const PredictPage = () => {
     for (let d = new Date(startOfMonth); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
       const key = d.toISOString().split('T')[0];
       const bucket = dayBuckets[key];
-      
+
       let status = 'empty';
       let predictedVal = 0;
       let actualVal = 0;
@@ -342,7 +342,7 @@ const PredictPage = () => {
 
   return (
     <div className="predict-page">
-      
+
       {/* ══ Modal ══ */}
       {modalOpen && (
         <div className="predict-modal-overlay">
@@ -373,8 +373,8 @@ const PredictPage = () => {
             </div>
             <div className="predict-modal-footer">
               {isPipelineRunning ? (
-                <button 
-                  className="predict-modal-reset" 
+                <button
+                  className="predict-modal-reset"
                   onClick={async () => {
                     if (window.confirm("Forcibly terminate the current inference process and reset?")) {
                       await resetPipeline(lookbackHours);
@@ -386,9 +386,9 @@ const PredictPage = () => {
               ) : (
                 <button className="predict-modal-cancel" onClick={() => setModalOpen(false)}>Cancel</button>
               )}
-              
-              <button 
-                className="predict-run-btn" 
+
+              <button
+                className="predict-run-btn"
                 onClick={triggerPipeline}
                 disabled={isPipelineRunning}
               >
@@ -401,7 +401,7 @@ const PredictPage = () => {
 
       {/* ══ Main Column ══ */}
       <div className="predict-main-column">
-        
+
         <div className="predict-header-controls">
           <div className="predict-window-tabs">
             {WINDOW_OPTIONS.map(opt => {
@@ -483,7 +483,7 @@ const PredictPage = () => {
             <button onClick={() => resetPipeline(activeWindow || lookbackHours)} className="pipeline-reset-btn">✕ Reset Computation</button>
           </div>
         )}
-        
+
         {pipelineStatus?.status === 'error' && (
           <div className="pipeline-error-wrap" style={{ marginBottom: '1rem' }}>
             <div className="pipeline-error">❌ Computation failed: {pipelineStatus.message}</div>
@@ -501,8 +501,8 @@ const PredictPage = () => {
                 <div className="info-tooltip-wrap">
                   <span className="info-icon">ℹ️</span>
                   <div className="info-tooltip">
-                    <strong>Global Risk Calculation:</strong><br/>
-                    An area-weighted average of all active regions. Larger regions influence the global score more significantly.<br/><br/>
+                    <strong>Global Risk Calculation:</strong><br />
+                    An area-weighted average of all active regions. Larger regions influence the global score more significantly.<br /><br />
                     <strong>Why it matters:</strong> Accurate global risk helps operators decide on satellite instrument safety.
                   </div>
                 </div>
@@ -529,10 +529,10 @@ const PredictPage = () => {
             <div className="info-tooltip-wrap">
               <span className="info-icon">ℹ️</span>
               <div className="info-tooltip">
-                <strong>Performance Report Card:</strong><br/>
-                We compare our AI verdicts against actual GOES-16 satellite data.<br/><br/>
-                • 🟢 <strong>Hit</strong>: Predicted flare occurred.<br/>
-                • 🔴 <strong>Miss</strong>: Flare occurred but wasn't predicted.<br/>
+                <strong>Performance Report Card:</strong><br />
+                We compare our AI verdicts against actual GOES-16 satellite data.<br /><br />
+                • 🟢 <strong>Hit</strong>: Predicted flare occurred.<br />
+                • 🔴 <strong>Miss</strong>: Flare occurred but wasn't predicted.<br />
                 • ⚪ <strong>Gap</strong>: Missing telemetry data.
               </div>
             </div>
@@ -545,14 +545,14 @@ const PredictPage = () => {
                 {chartData.map((bucket, i) => {
                   const d = new Date(bucket.timestamp);
                   const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-                  
+
                   const isFlarePredicted = bucket.predicted >= 0.75;
-                  const isFlareActual = bucket.actual >= 1.0; 
+                  const isFlareActual = bucket.actual >= 1.0;
                   const isCorrect = isFlarePredicted === isFlareActual;
-                  
+
                   return (
-                    <div 
-                      key={`day-${i}`} 
+                    <div
+                      key={`day-${i}`}
                       className={`heatmap-cell ${bucket.missing ? 'empty' : isCorrect ? 'correct' : 'incorrect'}`}
                       title={`${dateStr}\nPredicted: ${isFlarePredicted ? 'FLARE' : 'QUIET'}\nActual: ${isFlareActual ? 'FLARE' : 'QUIET'}`}
                     >
@@ -569,12 +569,12 @@ const PredictPage = () => {
                 <div className="cal-nav-row no-border">
                   <button className="cal-nav-btn" onClick={() => setSelectedMonth(m => (m === 0 ? 11 : m - 1))}>&lt;</button>
                   <div className="cal-selectors">
-                    <select 
-                      className="cal-select month-select" 
-                      value={selectedMonth} 
+                    <select
+                      className="cal-select month-select"
+                      value={selectedMonth}
                       onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
                     >
-                      {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => {
+                      {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => {
                         const now = new Date();
                         const isFutureMonth = selectedYear === now.getFullYear() && i > now.getMonth();
                         const isFutureYear = selectedYear > now.getFullYear();
@@ -585,8 +585,8 @@ const PredictPage = () => {
                         );
                       })}
                     </select>
-                    <select 
-                      className="cal-select year-select" 
+                    <select
+                      className="cal-select year-select"
                       value={selectedYear}
                       onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                     >
@@ -597,8 +597,8 @@ const PredictPage = () => {
                       ))}
                     </select>
                   </div>
-                  <button 
-                    className="cal-nav-btn" 
+                  <button
+                    className="cal-nav-btn"
                     disabled={selectedYear >= new Date().getFullYear() && selectedMonth >= new Date().getMonth()}
                     onClick={() => setSelectedMonth(m => (m === 11 ? 0 : m + 1))}
                   >
@@ -630,10 +630,10 @@ const PredictPage = () => {
           <div className="info-tooltip-wrap">
             <span className="info-icon">ℹ️</span>
             <div className="info-tooltip" style={{ left: 'auto', right: 0, width: '380px' }}>
-              <strong>Mission Control Intelligence:</strong><br/>
+              <strong>Mission Control Intelligence:</strong><br />
               <div style={{ marginTop: '0.4rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.4rem' }}>
-                • <strong>Weighted Global Risk</strong>: Area-proportional scoring. Ensures massive, dangerous regions dominate the global risk and prevents "threat dilution" from smaller spots.<br/>
-                • <strong>Multi-Factor AR Intelligence</strong>: Derived from 12 magnetic telemetry features and HGC coordinate tracking to identify Direct Earth-Strike potential.<br/>
+                • <strong>Weighted Global Risk</strong>: Area-proportional scoring. Ensures massive, dangerous regions dominate the global risk and prevents "threat dilution" from smaller spots.<br />
+                • <strong>Multi-Factor AR Intelligence</strong>: Derived from 12 magnetic telemetry features and HGC coordinate tracking to identify Direct Earth-Strike potential.<br />
                 • <strong>30-Day Performance Audit</strong>: Rolling benchmark comparing AI verdicts against GOES-16 satellite flux to verify model reliability and operational accuracy.
               </div>
             </div>
@@ -656,31 +656,31 @@ const PredictPage = () => {
               const displayPct = pctRaw === 0 ? '<1' : pctRaw;
 
               return (
-                <div 
-                  key={ar} 
-                  className="ar-card" 
+                <div
+                  key={ar}
+                  className="ar-card"
                   style={{ borderTopColor: meta.color }}
                   onDoubleClick={(e) => {
                     e.preventDefault();
-                    setStellaPopup({ 
-                      x: e.clientX, 
-                      y: e.clientY, 
+                    setStellaPopup({
+                      x: e.clientX,
+                      y: e.clientY,
                       query: `Analyze Active Region ${ar} for me. Tell me about its current state, physical location on the Sun, and any potential flare risks it poses for the next 24 hours.`
                     });
                   }}
                   title="Double-click for Ask Stella menu"
                 >
                   {stellaPopup && (
-                    <div 
-                      className="ask-stella-popup-overlay" 
+                    <div
+                      className="ask-stella-popup-overlay"
                       onClick={(e) => { e.stopPropagation(); setStellaPopup(null); }}
                       onContextMenu={(e) => { e.preventDefault(); setStellaPopup(null); }}
                     >
-                      <button 
+                      <button
                         className="ask-stella-popup-btn"
                         style={{ left: stellaPopup.x, top: stellaPopup.y }}
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
+                        onClick={(e) => {
+                          e.stopPropagation();
                           navigate('/stella', { state: { query: stellaPopup.query } });
                           setStellaPopup(null);
                         }}
@@ -722,7 +722,7 @@ const PredictPage = () => {
                           );
                         }
                         const tte = data.median_hours ?? Math.exp(data.mu);
-                        const tteLabel = tte < 48 ? `${Math.round(tte)} hours` : tte < 720 ? `${(tte/24).toFixed(1)} days` : `${(tte/8760).toFixed(1)} yrs`;
+                        const tteLabel = tte < 48 ? `${Math.round(tte)} hours` : tte < 720 ? `${(tte / 24).toFixed(1)} days` : `${(tte / 8760).toFixed(1)} yrs`;
                         return (
                           <div className="ar-meta-row">
                             <span className="ar-meta-key">Predicted TTE</span>
