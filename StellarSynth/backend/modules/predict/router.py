@@ -5,6 +5,8 @@ import requests
 import logging
 import math
 import os
+import glob
+import json as _json
 from database import get_db, PredictionHistory
 from sqlalchemy.orm import Session
 from fastapi import Depends
@@ -189,36 +191,76 @@ def fetch_current_kp():
 @router.get("/realtime")
 def get_realtime_prediction():
     """
-    Fetch live NOAA active region data and apply the physics-informed
-    heuristic to each active region to produce a real-time flare probability.
-    Falls back to graceful error if NOAA APIs are unavailable.
+    Returns pre-computed AthenaCTGRU predictions from live_predictions.json if available,
+    with KP + X-ray fetched in parallel. Falls back to NOAA heuristic if no ML file exists.
     """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def _fast_kp():
+        try:
+            r = requests.get(
+                "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json",
+                timeout=3
+            )
+            data = r.json()
+            for row in reversed(data):
+                if isinstance(row, list) and len(row) >= 2 and row[1] and row[1] != "":
+                    return float(row[1])
+        except Exception:
+            pass
+        return None
+
+    def _fast_xray():
+        try:
+            r = requests.get(
+                "https://services.swpc.noaa.gov/json/goes/primary/xrays-1-day.json",
+                timeout=3
+            )
+            data = r.json()
+            latest = next((d for d in reversed(data) if d.get("energy") == "0.05-0.4nm"), None)
+            return float(latest["flux"]) if latest else None
+        except Exception:
+            return None
+
     # Check if a live inference from AthenaCTGRU pipeline exists
     live_json_path = os.path.join(os.path.dirname(__file__), "live_predictions.json")
     if os.path.exists(live_json_path):
         try:
             with open(live_json_path, "r") as f:
-                data = __import__("json").load(f)
-            
+                data = _json.load(f)
+
             res_data = data.get("results", {})
-            # Calculate Global Risk from live data
             probs = [r.get("probability_24h", 0.0) for r in res_data.values()]
             max_p = max(probs) if probs else 0.0
             gs = "QUIET"
-            if max_p > 0.7: gs = "STRONG"
-            elif max_p > 0.35: gs = "MODERATE"
+            if max_p >= 0.85: gs = "STRONG"
+            elif max_p >= 0.75: gs = "MODERATE"
 
+            # Fetch KP + X-ray in parallel — max 3s each
+            kp_val, xray_val = None, None
+            with ThreadPoolExecutor(max_workers=2) as ex:
+                fut_kp   = ex.submit(_fast_kp)
+                fut_xray = ex.submit(_fast_xray)
+                try: kp_val   = fut_kp.result(timeout=4)
+                except Exception: pass
+                try: xray_val = fut_xray.result(timeout=4)
+                except Exception: pass
+
+            history_hours = data.get("history_hours", 36)
             return {
                 "status": "success",
                 "global_status": gs,
                 "global_score": round(max_p, 4),
-                "note": "Predictions computed LIVE by AthenaCTGRU using 36h sequence of SHARP magnetogram tensors.",
-                "kp_current": fetch_current_kp(),
-                "xray_flux": fetch_current_xray(),
+                "note": f"AthenaCTGRU pre-computed inference · {history_hours}h SHARP magnetogram window.",
+                "timestamp": data.get("timestamp"),
+                "history_hours": history_hours,
+                "kp_current": kp_val,
+                "xray_flux": xray_val,
                 "data": res_data
             }
         except Exception as e:
             logger.error(f"Failed to load live_predictions.json: {e}")
+
 
     # Fallback to heuristic
     xray_flux = fetch_current_xray()
@@ -307,20 +349,68 @@ def get_realtime_prediction():
 
 @router.get("/history")
 def get_prediction_history(db: Session = Depends(get_db)):
-    """Fetch the last 30 days of prediction history for graphing"""
-    return db.query(PredictionHistory).order_by(PredictionHistory.timestamp.desc()).limit(500).all()
+    """Fetch the last 30 days of prediction history for the dual-line chart.
+    Falls back gracefully if window_hours column hasn't been migrated yet.
+    """
+    from sqlalchemy.exc import ProgrammingError as SAProgError
+    try:
+        records = db.query(PredictionHistory).order_by(
+            PredictionHistory.timestamp.desc()
+        ).limit(500).all()
+        return [
+            {
+                "id": r.id,
+                "harp_num": r.harp_num,
+                "probability": r.probability,
+                "actual_outcome": r.actual_outcome,
+                "flagged": r.flagged,
+                "timestamp": r.timestamp.isoformat() if r.timestamp else None,
+                "global_score": r.global_score,
+                "window_hours": getattr(r, "window_hours", None),
+            }
+            for r in records
+        ]
+    except SAProgError as e:
+        # window_hours column not yet migrated — fall back to raw SQL without it
+        if "window_hours" in str(e):
+            db.rollback()
+            logger.warning("window_hours column missing — run scripts/migrate_add_window_hours.py")
+            from sqlalchemy import text
+            rows = db.execute(
+                text(
+                    "SELECT id, harp_num, probability, actual_outcome, flagged, "
+                    "timestamp, global_score FROM prediction_history "
+                    "ORDER BY timestamp DESC LIMIT 500"
+                )
+            ).fetchall()
+            return [
+                {
+                    "id": r.id,
+                    "harp_num": r.harp_num,
+                    "probability": r.probability,
+                    "actual_outcome": r.actual_outcome,
+                    "flagged": r.flagged,
+                    "timestamp": r.timestamp.isoformat() if r.timestamp else None,
+                    "global_score": r.global_score,
+                    "window_hours": None,
+                }
+                for r in rows
+            ]
+        raise
 
 @router.post("/record")
 def record_prediction(data: dict, db: Session = Depends(get_db)):
-    """Internal endpoint to save a successful pipeline run to DB"""
+    """Internal endpoint to save a successful pipeline run to DB."""
     results = data.get("results", {})
     global_score = data.get("global_score", 0.0)
+    window_hours = data.get("window_hours", None)
     for harp, info in results.items():
         record = PredictionHistory(
             harp_num=str(harp),
             probability=info.get("probability_24h", 0.0),
             flagged=info.get("flagged", False),
-            global_score=global_score
+            global_score=global_score,
+            window_hours=window_hours,
         )
         db.add(record)
     db.commit()
@@ -329,40 +419,264 @@ def record_prediction(data: dict, db: Session = Depends(get_db)):
 import subprocess
 import threading
 import sys
+import time
+
+def _get_log_file(history_hours: int):
+    return os.path.join(os.path.dirname(__file__), f"pipeline_log_{history_hours}h.txt")
+
+def _get_status_file(history_hours: int):
+    return os.path.join(os.path.dirname(__file__), f"pipeline_status_{history_hours}h.json")
+
+def _write_status(history_hours: int, status: str, progress: int, message: str):
+    try:
+        with open(_get_status_file(history_hours), "w") as f:
+            _json.dump({"status": status, "progress": progress, "message": message}, f)
+    except Exception:
+        pass
+
+
+def _append_log(history_hours: int, line: str):
+    try:
+        with open(_get_log_file(history_hours), "a", encoding="utf-8") as f:
+            f.write(line + "\n")
+    except Exception:
+        pass
+
+
+# Map known pipeline print patterns to progress percentages
+_PROGRESS_HINTS = [
+    ("Connecting to Stanford JSOC", 5, "Connecting to Stanford JSOC (drms)…"),
+    ("MODE: LIVE", 8, "Polling currently active HARPs…"),
+    ("MODE: TARGETED", 8, "Targeted historical mode active…"),
+    ("Validating coverage", 10, "Validating HARP data coverage…"),
+    ("Validated", 20, "HARP validated — sufficient frames found"),
+    ("Requesting export manifest", 30, "Requesting FITS export from JSOC…"),
+    ("files to download", 35, "Downloading SHARP magnetograms…"),
+    ("downloaded", 45, "Magnetogram download in progress…"),
+    ("Cleaned up", 48, "Pruning expired cache files…"),
+    ("Extracting features", 70, "Extracting physical HED features…"),
+    ("successful. Sequence shape", 80, "Feature extraction complete"),
+    ("Applying normalization", 88, "Applying z-score normalization…"),
+    ("Executing forward pass", 93, "Running AthenaCTGRU PyTorch inference…"),
+    ("INFERENCE RESULTS", 97, "Inference complete — formatting results…"),
+    ("Saved", 99, "Writing prediction JSON files…"),
+    ("Recorded results", 100, "Pipeline finished successfully."),
+]
+
 
 def run_pipeline_thread(history_hours: int):
+    """Run the_full_pipeline.py as a subprocess, stream stdout/stderr in real-time."""
+    log_file = _get_log_file(history_hours)
+    # Clear log from previous run
+    try:
+        with open(log_file, "w", encoding="utf-8") as f:
+            f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}] Pipeline started: {history_hours}h window\n")
+            f.write("=" * 60 + "\n")
+    except Exception:
+        pass
+
+    _write_status(history_hours, "running", 5, f"Starting {history_hours}h pipeline…")
+
     try:
         env = os.environ.copy()
         env["HISTORY_HOURS"] = str(history_hours)
+        env["PYTHONUNBUFFERED"] = "1"  # Force unbuffered output
         script_path = os.path.join(os.path.dirname(__file__), "the_full_pipeline.py")
-        subprocess.run([sys.executable, script_path], cwd=os.path.dirname(__file__), env=env)
+
+        proc = subprocess.Popen(
+            [sys.executable, "-u", script_path],
+            cwd=os.path.dirname(__file__),
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # Merge stderr into stdout
+            text=True,
+            bufsize=1,  # Line buffered
+        )
+
+        current_progress = 5
+        for raw_line in iter(proc.stdout.readline, ""):
+            line = raw_line.rstrip()
+            if not line:
+                continue
+
+            _append_log(history_hours, line)
+
+            # Match against known progress hints
+            for hint_text, hint_progress, hint_msg in _PROGRESS_HINTS:
+                if hint_text.lower() in line.lower():
+                    current_progress = max(current_progress, hint_progress)
+                    _write_status(history_hours, "running", current_progress, hint_msg)
+                    break
+            else:
+                # No match — just update the message with the raw line (truncated)
+                display = line[:120] if len(line) > 120 else line
+                _write_status(history_hours, "running", current_progress, display)
+
+        proc.wait()
+        retcode = proc.returncode
+
+        if retcode == 0:
+            _append_log(history_hours, "\n" + "=" * 60)
+            _append_log(history_hours, "Pipeline completed successfully.")
+            _write_status(history_hours, "completed", 100, "Pipeline finished successfully.")
+            logger.info(f"Pipeline ({history_hours}h) completed.")
+        else:
+            _append_log(history_hours, f"\nPipeline exited with code {retcode}")
+            _write_status(history_hours, "error", current_progress, f"Pipeline exited with non-zero code: {retcode}")
+            logger.error(f"Pipeline ({history_hours}h) failed with code {retcode}")
+
     except Exception as e:
-        logger.error(f"Pipeline thread failed: {e}")
+        msg = f"Pipeline thread exception: {e}"
+        logger.error(msg, exc_info=True)
+        _append_log(history_hours, msg)
+        _write_status(history_hours, "error", 0, msg)
 
 @router.post("/run-pipeline")
 def trigger_pipeline(req: PipelineRequest = None):
-    """Triggers the_full_pipeline.py in the background"""
+    """Triggers the_full_pipeline.py in the background — logs stream to pipeline_log.txt"""
     h_hours = req.history_hours if req else 36
-    status_file = os.path.join(os.path.dirname(__file__), "pipeline_status.json")
-    try:
-        with open(status_file, "w") as f:
-            __import__("json").dump({"status": "starting", "progress": 0, "message": f"Initializing {h_hours}h JSOC pipeline..."}, f)
-    except Exception:
-        pass
-    
-    t = threading.Thread(target=run_pipeline_thread, args=(h_hours,))
+    _write_status(h_hours, "starting", 0, f"Initializing {h_hours}h JSOC pipeline...")
+    t = threading.Thread(target=run_pipeline_thread, args=(h_hours,), daemon=True)
     t.start()
     return {"status": "started", "history_hours": h_hours}
 
+@router.post("/reset-pipeline")
+def reset_pipeline(req: PipelineRequest = None):
+    """Physically deletes the stuck status/log files for a given window."""
+    h_hours = req.history_hours if req else 36
+    try:
+        status_file = _get_status_file(h_hours)
+        if os.path.exists(status_file):
+            os.remove(status_file)
+        log_file = _get_log_file(h_hours)
+        if os.path.exists(log_file):
+            os.remove(log_file)
+    except Exception as e:
+        logger.error(f"Failed to reset pipeline {h_hours}h: {e}")
+    return {"status": "reset", "history_hours": h_hours}
+
+@router.post("/seed-history")
+def seed_history():
+    """Runs the seed_7day_history.py script to refresh the 7-day chart data from NOAA."""
+    import subprocess, sys
+    script_path = os.path.join(os.path.dirname(__file__), "../../scripts/seed_7day_history.py")
+    script_path = os.path.normpath(script_path)
+    try:
+        result = subprocess.run(
+            [sys.executable, script_path],
+            capture_output=True, text=True, timeout=30
+        )
+        logger.info(f"Seeder output: {result.stdout}")
+        if result.returncode != 0:
+            logger.error(f"Seeder error: {result.stderr}")
+            return {"status": "error", "detail": result.stderr}
+        return {"status": "ok", "detail": result.stdout}
+    except Exception as e:
+        logger.error(f"Failed to run seeder: {e}")
+        return {"status": "error", "detail": str(e)}
+
 @router.get("/pipeline-status")
-def get_pipeline_status():
-    """Polls the pipeline_status.json"""
-    status_file = os.path.join(os.path.dirname(__file__), "pipeline_status.json")
+def get_pipeline_status(window_hours: int = 36):
+    """Polls pipeline_status.json — called every 2s by frontend."""
+    status_file = _get_status_file(window_hours)
     if not os.path.exists(status_file):
-        return {"status": "idle", "progress": 0, "message": "Pipeline not running"}
-    
+        return {"status": "idle", "progress": 0, "message": f"No pipeline has been run for {window_hours}h yet."}
     try:
         with open(status_file, "r") as f:
-            return __import__("json").load(f)
+            return _json.load(f)
     except Exception:
-        return {"status": "unknown", "progress": 0, "message": "Could not read status"}
+        return {"status": "unknown", "progress": 0, "message": "Could not read status file."}
+
+
+@router.get("/pipeline-logs")
+def get_pipeline_logs(window_hours: int = 36, tail: int = 200):
+    """
+    Returns the last `tail` lines of pipeline_log.txt.
+    Called by frontend every 2s during a running pipeline.
+    """
+    log_file = _get_log_file(window_hours)
+    if not os.path.exists(log_file):
+        return {"lines": [], "total_lines": 0}
+    try:
+        with open(log_file, "r", encoding="utf-8", errors="replace") as f:
+            all_lines = f.readlines()
+        tail_lines = [l.rstrip() for l in all_lines[-tail:]]
+        return {
+            "lines": tail_lines,
+            "total_lines": len(all_lines),
+        }
+    except Exception as e:
+        return {"lines": [f"Error reading log: {e}"], "total_lines": 0}
+
+
+@router.get("/snapshots")
+def list_snapshots():
+    """
+    List all available per-window prediction JSONs.
+    Returns metadata for each available window (12h, 24h, 36h, 48h).
+    """
+    predict_dir = os.path.dirname(__file__)
+    pattern = os.path.join(predict_dir, "predictions_*h.json")
+    snapshots = []
+    for fpath in sorted(glob.glob(pattern)):
+        try:
+            with open(fpath, "r") as f:
+                data = _json.load(f)
+            fname = os.path.basename(fpath)
+            hours = int(fname.replace("predictions_", "").replace("h.json", ""))
+            probs = [r.get("probability_24h", 0) for r in data.get("results", {}).values()]
+            max_p = max(probs) if probs else 0.0
+            gs = "QUIET"
+            if max_p >= 0.85: gs = "STRONG"
+            elif max_p >= 0.75: gs = "MODERATE"
+            snapshots.append({
+                "filename": fname,
+                "window_hours": hours,
+                "timestamp": data.get("timestamp"),
+                "global_score": round(max_p, 4),
+                "global_status": gs,
+                "ar_count": len(data.get("results", {})),
+            })
+        except Exception:
+            continue
+    # Sort by window_hours
+    snapshots.sort(key=lambda x: x["window_hours"])
+    return {"snapshots": snapshots, "count": len(snapshots)}
+
+
+@router.get("/snapshot/{hours}")
+def get_snapshot(hours: int):
+    """
+    Fetch the pre-computed prediction results for a specific lookback window.
+    Returns 404-style dict if that window hasn't been computed yet.
+    """
+    predict_dir = os.path.dirname(__file__)
+    fpath = os.path.join(predict_dir, f"predictions_{hours}h.json")
+    if not os.path.exists(fpath):
+        return {
+            "status": "not_found",
+            "window_hours": hours,
+            "message": f"No pre-computed results for {hours}h window. Run the AthenaCTGRU pipeline with this window size to generate them.",
+        }
+    try:
+        with open(fpath, "r") as f:
+            data = _json.load(f)
+        # Calculate summary stats
+        results = data.get("results", {})
+        probs = [r.get("probability_24h", 0) for r in results.values()]
+        max_p = max(probs) if probs else 0.0
+        gs = "QUIET"
+        if max_p >= 0.85: gs = "STRONG"
+        elif max_p >= 0.75: gs = "MODERATE"
+        return {
+            "status": "success",
+            "window_hours": hours,
+            "timestamp": data.get("timestamp"),
+            "global_status": gs,
+            "global_score": round(max_p, 4),
+            "note": f"AthenaCTGRU inference computed over {hours}h SHARP magnetogram sequence.",
+            "data": results,
+        }
+    except Exception as e:
+        logger.error(f"Error reading snapshot {hours}h: {e}")
+        return {"status": "error", "message": str(e)}

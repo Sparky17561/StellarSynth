@@ -58,6 +58,7 @@ class PredictionHistory(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     global_score = Column(Float)
     actual_outcome = Column(Float, default=0.0) # Real X-ray flux peak observed
+    window_hours = Column(Integer, nullable=True)  # Which lookback window produced this record
 
 def get_db():
     db = SessionLocal()

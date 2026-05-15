@@ -119,7 +119,7 @@ def run_acquisition(target_harp=None, target_time_str=None):
                     except Exception:
                         continue
             if cleaned_count > 0:
-                print(f"🧹 Cleaned up {cleaned_count} expired FITS files for HARP {harp}")
+                print(f"[Cache] Cleaned up {cleaned_count} expired FITS files for HARP {harp}")
 
         export_query = f"{series}[{harp}][{t_start_str}-{t_end_str}]{{{','.join(SEGMENTS)}}}"
         print(f"Requesting export manifest for {harp}...")
@@ -127,41 +127,76 @@ def run_acquisition(target_harp=None, target_time_str=None):
         try:
             import requests as _requests
             from concurrent.futures import ThreadPoolExecutor, as_completed
+            import time
 
-            request = client.export(export_query, method='url', protocol='fits')
+            # Retry loop to handle JSOC's 1-concurrent-request-per-user limit (status=7)
+            max_retries = 15
+            for attempt in range(max_retries):
+                try:
+                    request = client.export(export_query, method='url', protocol='fits')
+                    
+                    # Block until JSOC has finished staging the files on their end
+                    print(f"  Waiting for JSOC export to stage (this can take a minute)...")
+                    request.wait()
 
-            # Get the full list of file URLs from the export manifest
-            file_list = request.data  # pandas DataFrame with 'url' and 'filename' columns
+                    # Get the full list of file URLs from the export manifest
+                    file_list = request.urls  # DataFrame with 'url' and 'record'
+                    break  # Success!
+                except Exception as e:
+                    err_str = str(e)
+                    if "[status=7]" in err_str or "pending export requests" in err_str:
+                        print(f"  JSOC queue is full (status=7). Waiting 30s before retry {attempt+1}/{max_retries}...")
+                        update_status("running", 30 + int((idx / max(1, len(valid_harps))) * 40), f"Waiting for previous JSOC export to finish (retry {attempt+1})...")
+                        time.sleep(30)
+                    elif "10054" in err_str or "Connection" in err_str or "Timeout" in err_str:
+                        print(f"  Network drop during JSOC poll: {err_str}. Retrying in 10s ({attempt+1}/{max_retries})...")
+                        time.sleep(10)
+                    else:
+                        raise e
+            else:
+                raise Exception("JSOC queue timeout: too many pending requests for this email.")
+
             total = len(file_list)
             print(f"  {total} files to download for AR {harp}. Starting parallel download (10 threads)...")
 
             def download_one(row):
                 url = row['url']
-                fname = os.path.basename(row['filename']) if row['filename'] else os.path.basename(url)
+                # Depending on drms version, filename might be missing from urls property, so extract from url
+                fname = os.path.basename(url)
                 dest = os.path.join(harp_dir, fname)
 
                 # SKIP if file already exists (Smart Cache)
                 if os.path.exists(dest) and os.path.getsize(dest) > 0:
                     return f"SKIP: {fname}"
 
-                try:
-                    resp = _requests.get(url, timeout=120, stream=True)
-                    resp.raise_for_status()
-                    with open(dest, 'wb') as f_out:
-                        for chunk in resp.iter_content(chunk_size=8192):
-                            f_out.write(chunk)
-                    return f"OK: {fname}"
-                except Exception as dl_err:
-                    return f"FAIL: {fname} ({dl_err})"
+                for dl_attempt in range(4):
+                    try:
+                        # Fail-fast timeout to prevent 8-minute hangs when JSOC drops connections silently
+                        resp = _requests.get(url, timeout=15, stream=True)
+                        resp.raise_for_status()
+                        with open(dest, 'wb') as f_out:
+                            for chunk in resp.iter_content(chunk_size=8192):
+                                if chunk:
+                                    f_out.write(chunk)
+                        return f"OK: {fname}"
+                    except Exception as dl_err:
+                        if dl_attempt == 3:
+                            return f"FAIL: {fname} ({dl_err})"
+                        time.sleep(2 ** dl_attempt) # Exponential backoff: 1s, 2s, 4s
 
             downloaded, skipped, failed = 0, 0, 0
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = {executor.submit(download_one, row): i for i, row in file_list.iterrows()}
-                for future in as_completed(futures):
+                for i, future in enumerate(as_completed(futures)):
                     result = future.result()
                     if result.startswith("OK"): downloaded += 1
                     elif result.startswith("SKIP"): skipped += 1
                     else: failed += 1; print(f"    {result}")
+                    
+                    # Print progress every 20 files
+                    processed = downloaded + skipped + failed
+                    if processed % 20 == 0 or processed == total:
+                        print(f"    ... {processed}/{total} files processed ({downloaded} DL, {skipped} cache)")
 
             print(f"AR {harp} done: {downloaded} downloaded, {skipped} cached, {failed} failed.")
         except Exception as e:
@@ -519,7 +554,7 @@ import numpy as np
 
 # Configuration
 MODEL_PATH = "best_model.pt"
-THRESHOLD = 0.53
+THRESHOLD = 0.75
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # ==============================================================================
@@ -595,10 +630,19 @@ def load_model(model_path, device):
     model.eval()
     return model
 
+def prob_flare_within_T(T_hours: float, mu: float, sigma: float) -> float:
+    if T_hours <= 0: return 0.0
+    z = (math.log(T_hours) - mu) / sigma
+    return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
+
+def lognormal_quantile_approx(p: float, mu: float, sigma: float) -> float:
+    z_scores = {0.25: -0.67449, 0.50: 0.0, 0.75: 0.67449, 0.10: -1.28155, 0.90: 1.28155}
+    z = z_scores.get(p, 0.0)
+    return math.exp(mu + sigma * z)
+
 def predict_flares(normalized_tensors, model_path=MODEL_PATH, threshold=THRESHOLD):
     """
-    Executes a forward pass on live active regions.
-    normalized_tensors format: {harpnum: (X_seq, X_static, X_mask)}
+    Executes a forward pass on live active regions and computes robust metrics.
     """
     model = load_model(model_path, DEVICE)
     results = {}
@@ -611,29 +655,44 @@ def predict_flares(normalized_tensors, model_path=MODEL_PATH, threshold=THRESHOL
             x_mask_t = torch.tensor(X_mask, dtype=torch.float32).to(DEVICE)
 
             preds = model(x_dyn_t, x_stat_t, x_mask_t)
-            mu = preds[:, 0:1]
-            log_sigma = preds[:, 1:2]
-            # ── DIAGNOSTIC ───────────────────────────────────────────────
-            print(f"  HARP {harp}: mu={float(mu.item()):.4f}  "
-                  f"log_sigma={float(log_sigma.item()):.4f}  "
-                  f"sigma={float(torch.exp(log_sigma).item()):.4f}  "
-                  f"exp(mu)={float(torch.exp(mu).item()):.2f}h  "
-                  f"log(24)={math.log(24):.4f}")
-            # ── END DIAGNOSTIC ────────────────────────────────────────────
+            mu_t = preds[:, 0:1]
+            log_sigma_t = preds[:, 1:2]
 
-            # Calculate P(T <= 24h)
-            sigma = torch.exp(log_sigma) + 1e-6
-            z = (math.log(24.0) - mu) / sigma
-            flare_prob = 0.5 * (1.0 + torch.erf(z / math.sqrt(2.0)))
+            mu = float(mu_t.item())
+            log_sigma = float(log_sigma_t.item())
+            sigma = math.exp(log_sigma)
 
-            prob_val = float(flare_prob.item())
-            is_flare = prob_val >= threshold
+            # Compute Probabilities
+            prob_24h = prob_flare_within_T(24.0, mu, sigma)
+            is_flare = prob_24h >= threshold
+
+            # Compute Median and IQR
+            median_T = math.exp(mu)
+            q1 = lognormal_quantile_approx(0.25, mu, sigma)
+            q3 = lognormal_quantile_approx(0.75, mu, sigma)
+
+            # Cumulative Probs
+            cum_probs = {
+                "1h": prob_flare_within_T(1.0, mu, sigma),
+                "3h": prob_flare_within_T(3.0, mu, sigma),
+                "6h": prob_flare_within_T(6.0, mu, sigma),
+                "12h": prob_flare_within_T(12.0, mu, sigma),
+                "24h": prob_24h,
+                "36h": prob_flare_within_T(36.0, mu, sigma),
+                "48h": prob_flare_within_T(48.0, mu, sigma),
+            }
 
             results[harp] = {
-                "mu": float(mu.item()),
-                "log_sigma": float(log_sigma.item()),
-                "probability_24h": prob_val,
-                "flagged": is_flare
+                "probability_24h": prob_24h,
+                "flagged": is_flare,
+                "median_hours": median_T,
+                "median_minutes": median_T * 60,
+                "iqr_lower_hours": q1,
+                "iqr_upper_hours": q3,
+                "cumulative_probs": cum_probs,
+                "mu": mu,
+                "log_sigma": log_sigma,
+                "sigma": sigma
             }
 
     return results
@@ -653,6 +712,7 @@ def format_and_output_results(inference_results, normalized_tensors):
 
     output_data = {
         "timestamp": timestamp,
+        "history_hours": HISTORY_HOURS,
         "results": {}
     }
 
@@ -672,33 +732,46 @@ def format_and_output_results(inference_results, normalized_tensors):
         output_data["results"][str(harp)] = {
             "probability_24h": prob,
             "flagged": bool(result['flagged']),
+            "median_hours": float(result.get('median_hours', 0.0)),
+            "median_minutes": float(result.get('median_minutes', 0.0)),
+            "iqr_lower_hours": float(result.get('iqr_lower_hours', 0.0)),
+            "iqr_upper_hours": float(result.get('iqr_upper_hours', 0.0)),
+            "cumulative_probs": result.get('cumulative_probs', {}),
             "mu": float(result["mu"]),
             "log_sigma": float(result["log_sigma"]),
+            "sigma": float(result.get("sigma", 0.0)),
             "hgc_x": hgc_x,
             "hgc_y": hgc_y,
             "cycle_phase": cycle_phase
         }
 
     print("===========================================\n")
-    
+
+    # ── Write per-window JSON — never clobbers other window sizes ──
+    window_filename = f"predictions_{HISTORY_HOURS}h.json"
+    with open(window_filename, "w") as f:
+        json.dump(output_data, f, indent=4)
+    print(f"Saved {HISTORY_HOURS}h window predictions to {window_filename}")
+
+    # ── Always update live_predictions.json as the "most recently completed" run ──
     with open("live_predictions.json", "w") as f:
         json.dump(output_data, f, indent=4)
-    print("Saved live predictions to live_predictions.json")
+    print(f"Updated live_predictions.json (latest: {HISTORY_HOURS}h window @ {timestamp})")
 
-    # NEW: Calculate global score and record to DB for historical graphing
+    # Record to DB for the 30-day history chart
     all_probs = [float(r['probability_24h']) for r in inference_results.values()]
     global_score = max(all_probs) if all_probs else 0.0
     
     try:
         import requests
-        # We use a POST request to the backend router we just updated
         requests.post("http://localhost:8000/api/predict/record", json={
             "results": output_data["results"],
-            "global_score": global_score
+            "global_score": global_score,
+            "window_hours": HISTORY_HOURS,
         }, timeout=5)
-        print("✅ Recorded results to database history.")
+        print("[SUCCESS] Recorded results to database history.")
     except Exception as e:
-        print(f"⚠️ Could not record to database (is uvicorn running?): {e}")
+        print(f"[WARNING] Could not record to database (is uvicorn running?): {e}")
 
 # Execute using the 'tensors' variable generated in Step 2
 try:

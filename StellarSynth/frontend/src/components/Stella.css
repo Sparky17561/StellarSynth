@@ -380,7 +380,7 @@
 /* ─── Starter Suggestions Grid (ChatGPT Style) ─── */
 .stella-suggestions-wrapper {
   max-width: 800px;
-  margin: 2rem auto 1rem;
+  margin: 1.5rem auto 1rem;
   width: 100%;
   padding: 0 0.5rem;
 }

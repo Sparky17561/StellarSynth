@@ -1,0 +1,371 @@
+[2026-05-15 04:51:57 UTC] Pipeline started: 12h window
+============================================================
+--- MODE: LIVE (Polling currently active regions) ---
+HARP 13512: Validated (61 frames).
+HARP 13523: Validated (61 frames).
+HARP 13526: Validated (61 frames).
+HARP 13533: Validated (61 frames).
+HARP 13534: Validated (61 frames).
+HARP 13535: Validated (61 frames).
+HARP 13536: Validated (61 frames).
+HARP 13538: Validated (61 frames).
+HARP 13540: Skipped (Only 22 frames found).
+Requesting export manifest for 13512...
+  Waiting for JSOC export to stage (this can take a minute)...
+2026-05-15 10:22:16 - drms - INFO: Export request pending. [id=JSOC_20260515_005226, status=2]
+2026-05-15 10:22:16 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:22:22 - drms - INFO: Export request pending. [id=JSOC_20260515_005226, status=1]
+2026-05-15 10:22:22 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:22:28 - drms - INFO: Export request pending. [id=JSOC_20260515_005226, status=1]
+2026-05-15 10:22:28 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:22:33 - drms - INFO: Export request pending. [id=JSOC_20260515_005226, status=1]
+2026-05-15 10:22:33 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:22:39 - drms - INFO: Export request pending. [id=JSOC_20260515_005226, status=1]
+2026-05-15 10:22:39 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:22:45 - drms - INFO: Export request pending. [id=JSOC_20260515_005226, status=1]
+2026-05-15 10:22:45 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:22:51 - drms - INFO: Export request pending. [id=JSOC_20260515_005226, status=1]
+2026-05-15 10:22:51 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:22:57 - drms - INFO: Export request pending. [id=JSOC_20260515_005226, status=1]
+2026-05-15 10:22:57 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:23:02 - drms - INFO: Export request pending. [id=JSOC_20260515_005226, status=1]
+2026-05-15 10:23:02 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:23:08 - drms - INFO: Export request pending. [id=JSOC_20260515_005226, status=1]
+2026-05-15 10:23:08 - drms - INFO: Waiting for 5 seconds...
+  183 files to download for AR 13512. Starting parallel download (10 threads)...
+    ... 20/183 files processed (0 DL, 20 cache)
+    ... 40/183 files processed (0 DL, 40 cache)
+    ... 60/183 files processed (0 DL, 60 cache)
+    ... 80/183 files processed (0 DL, 80 cache)
+    ... 100/183 files processed (0 DL, 100 cache)
+    ... 120/183 files processed (0 DL, 120 cache)
+    ... 140/183 files processed (0 DL, 140 cache)
+    ... 160/183 files processed (0 DL, 160 cache)
+    ... 180/183 files processed (6 DL, 174 cache)
+    ... 183/183 files processed (9 DL, 174 cache)
+AR 13512 done: 9 downloaded, 174 cached, 0 failed.
+[Cache] Cleaned up 9 expired FITS files for HARP 13523
+Requesting export manifest for 13523...
+  Waiting for JSOC export to stage (this can take a minute)...
+2026-05-15 10:23:23 - drms - INFO: Export request pending. [id=JSOC_20260515_005243, status=2]
+2026-05-15 10:23:23 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:23:29 - drms - INFO: Export request pending. [id=JSOC_20260515_005243, status=1]
+2026-05-15 10:23:29 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:23:35 - drms - INFO: Export request pending. [id=JSOC_20260515_005243, status=1]
+2026-05-15 10:23:35 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:23:41 - drms - INFO: Export request pending. [id=JSOC_20260515_005243, status=1]
+2026-05-15 10:23:41 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:23:47 - drms - INFO: Export request pending. [id=JSOC_20260515_005243, status=1]
+2026-05-15 10:23:47 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:23:52 - drms - INFO: Export request pending. [id=JSOC_20260515_005243, status=1]
+2026-05-15 10:23:52 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:23:58 - drms - INFO: Export request pending. [id=JSOC_20260515_005243, status=1]
+2026-05-15 10:23:58 - drms - INFO: Waiting for 5 seconds...
+  183 files to download for AR 13523. Starting parallel download (10 threads)...
+    ... 20/183 files processed (0 DL, 20 cache)
+    ... 40/183 files processed (0 DL, 40 cache)
+    ... 60/183 files processed (0 DL, 60 cache)
+    ... 80/183 files processed (0 DL, 80 cache)
+    ... 100/183 files processed (0 DL, 100 cache)
+    ... 120/183 files processed (0 DL, 120 cache)
+    ... 140/183 files processed (0 DL, 140 cache)
+    ... 160/183 files processed (0 DL, 160 cache)
+    ... 180/183 files processed (6 DL, 174 cache)
+    ... 183/183 files processed (9 DL, 174 cache)
+AR 13523 done: 9 downloaded, 174 cached, 0 failed.
+Requesting export manifest for 13526...
+  Waiting for JSOC export to stage (this can take a minute)...
+2026-05-15 10:24:09 - drms - INFO: Export request pending. [id=JSOC_20260515_005258, status=2]
+2026-05-15 10:24:09 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:24:15 - drms - INFO: Export request pending. [id=JSOC_20260515_005258, status=1]
+2026-05-15 10:24:15 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:24:21 - drms - INFO: Export request pending. [id=JSOC_20260515_005258, status=1]
+2026-05-15 10:24:21 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:24:27 - drms - INFO: Export request pending. [id=JSOC_20260515_005258, status=1]
+2026-05-15 10:24:27 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:24:32 - drms - INFO: Export request pending. [id=JSOC_20260515_005258, status=1]
+2026-05-15 10:24:32 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:24:38 - drms - INFO: Export request pending. [id=JSOC_20260515_005258, status=1]
+2026-05-15 10:24:38 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:24:44 - drms - INFO: Export request pending. [id=JSOC_20260515_005258, status=1]
+2026-05-15 10:24:44 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:24:50 - drms - INFO: Export request pending. [id=JSOC_20260515_005258, status=1]
+2026-05-15 10:24:50 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:24:55 - drms - INFO: Export request pending. [id=JSOC_20260515_005258, status=1]
+2026-05-15 10:24:55 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:25:01 - drms - INFO: Export request pending. [id=JSOC_20260515_005258, status=1]
+2026-05-15 10:25:01 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:25:08 - drms - INFO: Export request pending. [id=JSOC_20260515_005258, status=1]
+2026-05-15 10:25:08 - drms - INFO: Waiting for 5 seconds...
+  183 files to download for AR 13526. Starting parallel download (10 threads)...
+    ... 20/183 files processed (20 DL, 0 cache)
+    ... 40/183 files processed (40 DL, 0 cache)
+    ... 60/183 files processed (60 DL, 0 cache)
+    ... 80/183 files processed (80 DL, 0 cache)
+    ... 100/183 files processed (100 DL, 0 cache)
+    ... 120/183 files processed (120 DL, 0 cache)
+    ... 140/183 files processed (140 DL, 0 cache)
+    ... 160/183 files processed (160 DL, 0 cache)
+    ... 180/183 files processed (180 DL, 0 cache)
+    FAIL: hmi.sharp_cea_720s_nrt.13526.20260514_183600_TAI.Bp.fits (('Connection broken: IncompleteRead(163526 bytes read, 458554 more expected)', IncompleteRead(163526 bytes read, 458554 more expected)))
+    FAIL: hmi.sharp_cea_720s_nrt.13526.20260514_202400_TAI.Bp.fits (('Connection broken: IncompleteRead(97990 bytes read, 532730 more expected)', IncompleteRead(97990 bytes read, 532730 more expected)))
+    ... 183/183 files processed (181 DL, 0 cache)
+AR 13526 done: 181 downloaded, 0 cached, 2 failed.
+Requesting export manifest for 13533...
+  Waiting for JSOC export to stage (this can take a minute)...
+2026-05-15 10:28:50 - drms - INFO: Export request pending. [id=JSOC_20260515_005340, status=2]
+2026-05-15 10:28:50 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:28:55 - drms - INFO: Export request pending. [id=JSOC_20260515_005340, status=1]
+2026-05-15 10:28:55 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:29:01 - drms - INFO: Export request pending. [id=JSOC_20260515_005340, status=1]
+2026-05-15 10:29:01 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:29:07 - drms - INFO: Export request pending. [id=JSOC_20260515_005340, status=1]
+2026-05-15 10:29:07 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:29:13 - drms - INFO: Export request pending. [id=JSOC_20260515_005340, status=1]
+2026-05-15 10:29:13 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:29:18 - drms - INFO: Export request pending. [id=JSOC_20260515_005340, status=1]
+2026-05-15 10:29:18 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:29:24 - drms - INFO: Export request pending. [id=JSOC_20260515_005340, status=1]
+2026-05-15 10:29:24 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:29:30 - drms - INFO: Export request pending. [id=JSOC_20260515_005340, status=1]
+2026-05-15 10:29:30 - drms - INFO: Waiting for 5 seconds...
+  183 files to download for AR 13533. Starting parallel download (10 threads)...
+    ... 20/183 files processed (20 DL, 0 cache)
+    ... 40/183 files processed (40 DL, 0 cache)
+    ... 60/183 files processed (60 DL, 0 cache)
+    ... 80/183 files processed (80 DL, 0 cache)
+    ... 100/183 files processed (100 DL, 0 cache)
+    ... 120/183 files processed (120 DL, 0 cache)
+    ... 140/183 files processed (140 DL, 0 cache)
+    ... 160/183 files processed (160 DL, 0 cache)
+    ... 180/183 files processed (180 DL, 0 cache)
+    ... 183/183 files processed (183 DL, 0 cache)
+AR 13533 done: 183 downloaded, 0 cached, 0 failed.
+Requesting export manifest for 13534...
+  Waiting for JSOC export to stage (this can take a minute)...
+2026-05-15 10:30:35 - drms - INFO: Export request pending. [id=JSOC_20260515_005377, status=2]
+2026-05-15 10:30:35 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:30:41 - drms - INFO: Export request pending. [id=JSOC_20260515_005377, status=1]
+2026-05-15 10:30:41 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:30:46 - drms - INFO: Export request pending. [id=JSOC_20260515_005377, status=1]
+2026-05-15 10:30:46 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:30:52 - drms - INFO: Export request pending. [id=JSOC_20260515_005377, status=1]
+2026-05-15 10:30:52 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:30:58 - drms - INFO: Export request pending. [id=JSOC_20260515_005377, status=1]
+2026-05-15 10:30:58 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:31:04 - drms - INFO: Export request pending. [id=JSOC_20260515_005377, status=1]
+2026-05-15 10:31:04 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:31:10 - drms - INFO: Export request pending. [id=JSOC_20260515_005377, status=1]
+2026-05-15 10:31:10 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:31:15 - drms - INFO: Export request pending. [id=JSOC_20260515_005377, status=1]
+2026-05-15 10:31:15 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:31:21 - drms - INFO: Export request pending. [id=JSOC_20260515_005377, status=1]
+2026-05-15 10:31:21 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:31:27 - drms - INFO: Export request pending. [id=JSOC_20260515_005377, status=1]
+2026-05-15 10:31:27 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:31:33 - drms - INFO: Export request pending. [id=JSOC_20260515_005377, status=1]
+2026-05-15 10:31:33 - drms - INFO: Waiting for 5 seconds...
+  183 files to download for AR 13534. Starting parallel download (10 threads)...
+    ... 20/183 files processed (20 DL, 0 cache)
+    ... 40/183 files processed (40 DL, 0 cache)
+    ... 60/183 files processed (60 DL, 0 cache)
+    ... 80/183 files processed (80 DL, 0 cache)
+    ... 100/183 files processed (100 DL, 0 cache)
+    ... 120/183 files processed (120 DL, 0 cache)
+    ... 140/183 files processed (140 DL, 0 cache)
+    ... 160/183 files processed (160 DL, 0 cache)
+    ... 180/183 files processed (180 DL, 0 cache)
+    ... 183/183 files processed (183 DL, 0 cache)
+AR 13534 done: 183 downloaded, 0 cached, 0 failed.
+Requesting export manifest for 13535...
+  Waiting for JSOC export to stage (this can take a minute)...
+2026-05-15 10:33:46 - drms - INFO: Export request pending. [id=JSOC_20260515_005436, status=2]
+2026-05-15 10:33:46 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:33:52 - drms - INFO: Export request pending. [id=JSOC_20260515_005436, status=1]
+2026-05-15 10:33:52 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:33:58 - drms - INFO: Export request pending. [id=JSOC_20260515_005436, status=1]
+2026-05-15 10:33:58 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:34:04 - drms - INFO: Export request pending. [id=JSOC_20260515_005436, status=1]
+2026-05-15 10:34:04 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:34:10 - drms - INFO: Export request pending. [id=JSOC_20260515_005436, status=1]
+2026-05-15 10:34:10 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:34:15 - drms - INFO: Export request pending. [id=JSOC_20260515_005436, status=1]
+2026-05-15 10:34:15 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:34:21 - drms - INFO: Export request pending. [id=JSOC_20260515_005436, status=1]
+2026-05-15 10:34:21 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:34:27 - drms - INFO: Export request pending. [id=JSOC_20260515_005436, status=1]
+2026-05-15 10:34:27 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:34:33 - drms - INFO: Export request pending. [id=JSOC_20260515_005436, status=1]
+2026-05-15 10:34:33 - drms - INFO: Waiting for 5 seconds...
+  183 files to download for AR 13535. Starting parallel download (10 threads)...
+    ... 20/183 files processed (20 DL, 0 cache)
+    ... 40/183 files processed (40 DL, 0 cache)
+    ... 60/183 files processed (60 DL, 0 cache)
+    ... 80/183 files processed (80 DL, 0 cache)
+    ... 100/183 files processed (100 DL, 0 cache)
+    ... 120/183 files processed (120 DL, 0 cache)
+    ... 140/183 files processed (140 DL, 0 cache)
+    ... 160/183 files processed (160 DL, 0 cache)
+    ... 180/183 files processed (180 DL, 0 cache)
+    ... 183/183 files processed (183 DL, 0 cache)
+AR 13535 done: 183 downloaded, 0 cached, 0 failed.
+Requesting export manifest for 13536...
+  Waiting for JSOC export to stage (this can take a minute)...
+2026-05-15 10:36:13 - drms - INFO: Export request pending. [id=JSOC_20260515_005480, status=2]
+2026-05-15 10:36:13 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:36:19 - drms - INFO: Export request pending. [id=JSOC_20260515_005480, status=1]
+2026-05-15 10:36:19 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:36:25 - drms - INFO: Export request pending. [id=JSOC_20260515_005480, status=1]
+2026-05-15 10:36:25 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:36:31 - drms - INFO: Export request pending. [id=JSOC_20260515_005480, status=1]
+2026-05-15 10:36:31 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:36:37 - drms - INFO: Export request pending. [id=JSOC_20260515_005480, status=1]
+2026-05-15 10:36:37 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:36:42 - drms - INFO: Export request pending. [id=JSOC_20260515_005480, status=1]
+2026-05-15 10:36:42 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:36:48 - drms - INFO: Export request pending. [id=JSOC_20260515_005480, status=1]
+2026-05-15 10:36:48 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:36:54 - drms - INFO: Export request pending. [id=JSOC_20260515_005480, status=1]
+2026-05-15 10:36:54 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:37:00 - drms - INFO: Export request pending. [id=JSOC_20260515_005480, status=1]
+2026-05-15 10:37:00 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:37:05 - drms - INFO: Export request pending. [id=JSOC_20260515_005480, status=1]
+2026-05-15 10:37:05 - drms - INFO: Waiting for 5 seconds...
+  183 files to download for AR 13536. Starting parallel download (10 threads)...
+    ... 20/183 files processed (20 DL, 0 cache)
+    ... 40/183 files processed (40 DL, 0 cache)
+    ... 60/183 files processed (60 DL, 0 cache)
+    ... 80/183 files processed (80 DL, 0 cache)
+    ... 100/183 files processed (100 DL, 0 cache)
+    ... 120/183 files processed (120 DL, 0 cache)
+    ... 140/183 files processed (140 DL, 0 cache)
+    ... 160/183 files processed (160 DL, 0 cache)
+    ... 180/183 files processed (180 DL, 0 cache)
+    ... 183/183 files processed (183 DL, 0 cache)
+AR 13536 done: 183 downloaded, 0 cached, 0 failed.
+Requesting export manifest for 13538...
+  Waiting for JSOC export to stage (this can take a minute)...
+2026-05-15 10:39:29 - drms - INFO: Export request pending. [id=JSOC_20260515_005537, status=2]
+2026-05-15 10:39:29 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:39:35 - drms - INFO: Export request pending. [id=JSOC_20260515_005537, status=1]
+2026-05-15 10:39:35 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:39:40 - drms - INFO: Export request pending. [id=JSOC_20260515_005537, status=1]
+2026-05-15 10:39:40 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:39:46 - drms - INFO: Export request pending. [id=JSOC_20260515_005537, status=1]
+2026-05-15 10:39:46 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:39:52 - drms - INFO: Export request pending. [id=JSOC_20260515_005537, status=1]
+2026-05-15 10:39:52 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:39:58 - drms - INFO: Export request pending. [id=JSOC_20260515_005537, status=1]
+2026-05-15 10:39:58 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:40:04 - drms - INFO: Export request pending. [id=JSOC_20260515_005537, status=1]
+2026-05-15 10:40:04 - drms - INFO: Waiting for 5 seconds...
+2026-05-15 10:40:10 - drms - INFO: Export request pending. [id=JSOC_20260515_005537, status=1]
+2026-05-15 10:40:10 - drms - INFO: Waiting for 5 seconds...
+  183 files to download for AR 13538. Starting parallel download (10 threads)...
+    ... 20/183 files processed (20 DL, 0 cache)
+    ... 40/183 files processed (40 DL, 0 cache)
+    ... 60/183 files processed (60 DL, 0 cache)
+    ... 80/183 files processed (80 DL, 0 cache)
+    ... 100/183 files processed (100 DL, 0 cache)
+    ... 120/183 files processed (120 DL, 0 cache)
+    ... 140/183 files processed (140 DL, 0 cache)
+    ... 160/183 files processed (160 DL, 0 cache)
+    ... 180/183 files processed (180 DL, 0 cache)
+    ... 183/183 files processed (183 DL, 0 cache)
+AR 13538 done: 183 downloaded, 0 cached, 0 failed.
+Extracting features for HARP 13512...
+  HARP 13512 successful. Sequence shape: (1, 60, 14)
+Extracting features for HARP 13523...
+  HARP 13523 successful. Sequence shape: (1, 60, 14)
+Extracting features for HARP 13526...
+Physics engine failure for 20260514_183600_TAI: buffer is too small for requested array
+Physics engine failure for 20260514_202400_TAI: buffer is too small for requested array
+  HARP 13526 successful. Sequence shape: (1, 60, 14)
+Extracting features for HARP 13533...
+  HARP 13533 successful. Sequence shape: (1, 60, 14)
+Extracting features for HARP 13534...
+  HARP 13534 successful. Sequence shape: (1, 60, 14)
+Extracting features for HARP 13535...
+  HARP 13535 successful. Sequence shape: (1, 60, 14)
+Extracting features for HARP 13536...
+  HARP 13536 successful. Sequence shape: (1, 60, 14)
+Extracting features for HARP 13538...
+  HARP 13538 successful. Sequence shape: (1, 60, 14)
+Applying normalization...
+Executing forward pass...
+  HARP 13512: mu=5.1142  log_sigma=0.4283  sigma=1.5347  exp(mu)=166.37h  log(24)=3.1781
+  HARP 13523: mu=10.0085  log_sigma=0.4049  sigma=1.4991  exp(mu)=22215.08h  log(24)=3.1781
+  HARP 13526: mu=3.6632  log_sigma=0.4257  sigma=1.5307  exp(mu)=38.99h  log(24)=3.1781
+  HARP 13533: mu=10.2434  log_sigma=0.3577  sigma=1.4301  exp(mu)=28096.40h  log(24)=3.1781
+  HARP 13534: mu=10.4846  log_sigma=0.3943  sigma=1.4833  exp(mu)=35761.93h  log(24)=3.1781
+  HARP 13535: mu=9.6950  log_sigma=0.4296  sigma=1.5367  exp(mu)=16235.43h  log(24)=3.1781
+  HARP 13536: mu=5.3884  log_sigma=0.4166  sigma=1.5168  exp(mu)=218.85h  log(24)=3.1781
+  HARP 13538: mu=9.2218  log_sigma=0.4354  sigma=1.5455  exp(mu)=10115.36h  log(24)=3.1781
+[2026-05-15 05:14:08 UTC] === INFERENCE RESULTS ===
+  HARPNUM 13512:
+    Flare Probability (<=24h) : 0.1035
+    Binary Prediction         : 0
+    HGC Position (Cos X, Y)   : 0.5982, 0.3701
+    Solar Cycle Phase         : 0.5866
+  HARPNUM 13523:
+    Flare Probability (<=24h) : 0.0000
+    Binary Prediction         : 0
+    HGC Position (Cos X, Y)   : 0.1989, -0.3576
+    Solar Cycle Phase         : 0.5866
+  HARPNUM 13526:
+    Flare Probability (<=24h) : 0.3756
+    Binary Prediction         : 0
+    HGC Position (Cos X, Y)   : -0.5272, 0.3152
+    Solar Cycle Phase         : 0.5866
+  HARPNUM 13533:
+    Flare Probability (<=24h) : 0.0000
+    Binary Prediction         : 0
+    HGC Position (Cos X, Y)   : -0.3546, -0.1403
+    Solar Cycle Phase         : 0.5866
+  HARPNUM 13534:
+    Flare Probability (<=24h) : 0.0000
+    Binary Prediction         : 0
+    HGC Position (Cos X, Y)   : -0.5535, -0.3253
+    Solar Cycle Phase         : 0.5866
+  HARPNUM 13535:
+    Flare Probability (<=24h) : 0.0000
+    Binary Prediction         : 0
+    HGC Position (Cos X, Y)   : -0.6947, 0.2038
+    Solar Cycle Phase         : 0.5866
+  HARPNUM 13536:
+    Flare Probability (<=24h) : 0.0725
+    Binary Prediction         : 0
+    HGC Position (Cos X, Y)   : 0.2393, 0.3428
+    Solar Cycle Phase         : 0.5866
+  HARPNUM 13538:
+    Flare Probability (<=24h) : 0.0000
+    Binary Prediction         : 0
+    HGC Position (Cos X, Y)   : -0.7508, 0.3019
+    Solar Cycle Phase         : 0.5866
+===========================================
+Saved 12h window predictions to predictions_12h.json
+Updated live_predictions.json (latest: 12h window @ 2026-05-15 05:14:08)
+Execution failed: 'charmap' codec can't encode characters in position 0-1: character maps to <undefined>
+Traceback (most recent call last):
+  File "C:\Users\Wissen\Desktop\StellarSynth\StellarSynth\backend\modules\predict\the_full_pipeline.py", line 733, in format_and_output_results
+    print("\u2705 Recorded results to database history.")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 0: character maps to <undefined>
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "C:\Users\Wissen\Desktop\StellarSynth\StellarSynth\backend\modules\predict\the_full_pipeline.py", line 748, in <module>
+    format_and_output_results(results, norm_tensors)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Wissen\Desktop\StellarSynth\StellarSynth\backend\modules\predict\the_full_pipeline.py", line 735, in format_and_output_results
+    print(f"\u26a0\ufe0f Could not record to database (is uvicorn running?): {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 0-1: character maps to <undefined>
+
+============================================================
+Pipeline completed successfully.

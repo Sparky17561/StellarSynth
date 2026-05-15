@@ -15,10 +15,8 @@ const getSessionId = () => {
 
 const QUICK_QUERIES = [
   { label: '🔮 Current flare risk', q: "What's the current flare risk based on the latest ML prediction?", desc: "Analyze latest AthenaCTGRU tensors" },
-  { label: '🔍 elevated risk drivers', q: "Why is the current flare risk elevated? Walk me through the top signals.", desc: "Physical breakdown of top active regions" },
+  { label: '🔍 Elevated risk drivers', q: "Why is the current flare risk elevated? Walk me through the top signals.", desc: "Physical breakdown of top active regions" },
   { label: '📅 Flare timing forecast', q: "When will the next solar flare occur?", desc: "24h window probabilities and uncertainty" },
-  { label: '🌋 Halloween 2003 storms', q: "What happened during the 2003 Halloween solar storms? Compare with current setup.", desc: "Historical similarity comparisons" },
-  { label: '📡 Radio & GNSS impact', q: "What's the current radio blackout and GNSS disruption risk?", desc: "Ionospheric response to X-ray flux" },
   { label: '🛰️ Satellite operations', q: "What should satellite operators know about current space weather?", desc: "Actionable payload and drag advisories" },
 ];
 
@@ -251,7 +249,7 @@ const Stella = () => {
 
   const pred = status?.prediction;
   const col = RISK_LIGHT[pred?.global_status] || RISK_LIGHT.UNKNOWN;
-  const isWelcomeState = messages.length <= 2;
+  const isWelcomeState = messages.length === 1 || (messages.length === 2 && messages[1].role === 'assistant' && windowChips.length === 0);
 
   return (
     <div className="stella-page">
@@ -341,29 +339,32 @@ const Stella = () => {
               </div>
             </div>
           )}
+
+          {/* ── ChatGPT style Suggestions Grid (Only visible on empty/new chat) ── */}
+          {isWelcomeState && !loading && (
+            <div className="stella-suggestions-wrapper">
+              <div className="stella-suggestions-grid">
+                {QUICK_QUERIES.map(q => (
+                  <button
+                    key={q.label}
+                    className="stella-suggestion-card"
+                    onClick={() => sendMessage(q.q)}
+                  >
+                    <div className="stella-sug-title">{q.label}</div>
+                    <div className="stella-sug-desc">{q.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div ref={chatBottomRef} />
         </div>
 
         {/* Window follow-up chips */}
         {windowChips.length > 0 && !loading && (
-          <WindowChips chips={windowChips} onSelect={sendMessage} loading={loading} />
-        )}
-
-        {/* ── ChatGPT style Suggestions Grid (Only visible on empty/new chat) ── */}
-        {isWelcomeState && !loading && (
-          <div className="stella-suggestions-wrapper">
-            <div className="stella-suggestions-grid">
-              {QUICK_QUERIES.map(q => (
-                <button
-                  key={q.label}
-                  className="stella-suggestion-card"
-                  onClick={() => sendMessage(q.q)}
-                >
-                  <div className="stella-sug-title">{q.label}</div>
-                  <div className="stella-sug-desc">{q.desc}</div>
-                </button>
-              ))}
-            </div>
+          <div className="stella-chips-container">
+            <WindowChips chips={windowChips} onSelect={sendMessage} loading={loading} />
           </div>
         )}
 

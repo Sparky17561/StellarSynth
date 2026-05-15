@@ -48,15 +48,15 @@ def fetch_live_ml_predictions() -> dict:
 
 def fetch_realtime_prediction_api() -> dict:
     """
-    Hit the /api/predict/realtime endpoint locally to get latest prediction.
-    This is the authoritative ML result. Falls back to live_predictions.json.
+    Get the latest prediction by calling the predict router's logic directly
+    (no HTTP — avoids deadlocking FastAPI's worker thread pool).
     """
     try:
-        r = requests.get("http://localhost:8000/api/predict/realtime", timeout=6)
-        if r.status_code == 200:
-            return r.json()
+        from modules.predict.router import get_realtime_prediction
+        result = get_realtime_prediction()
+        return result if isinstance(result, dict) else {}
     except Exception as e:
-        logger.warning(f"Could not hit /api/predict/realtime: {e}")
+        logger.warning(f"Could not get realtime prediction: {e}")
     return {}
 
 
