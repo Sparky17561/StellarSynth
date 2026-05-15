@@ -122,6 +122,8 @@ const PredictPage = () => {
   const [seedingChart, setSeedingChart] = useState(false);
   const logRef = useRef(null);
   const [stellaPopup, setStellaPopup] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   /* ── Fetch available snapshots ── */
   const fetchSnapshots = useCallback(async () => {
@@ -303,30 +305,38 @@ const PredictPage = () => {
       if (a > dayBuckets[key].actual) dayBuckets[key].actual = a;
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const startOfMonth = new Date(selectedYear, selectedMonth, 1);
+    const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
     const calendarData = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
+
+    for (let d = new Date(startOfMonth); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
       const key = d.toISOString().split('T')[0];
+      const bucket = dayBuckets[key];
       
-      // FALLBACK: If history is empty, generate some pseudo-random data for demo purposes
-      // The user wants to see the heatmap functionality.
-      let bucket = dayBuckets[key];
-      if (!bucket && history.length === 0) {
-        const seed = i + 42; 
-        const p = (seed % 10) / 10;
-        const a = (seed % 7 === 0) ? 1.5 : 0; // Mock flares
-        bucket = { predicted: p, actual: a, missing: false };
-      } else if (!bucket) {
-        bucket = { predicted: 0, actual: 0, missing: true };
+      let status = 'empty';
+      let predictedVal = 0;
+      let actualVal = 0;
+
+      if (bucket) {
+        predictedVal = bucket.predicted;
+        actualVal = bucket.actual;
+        const isFlarePredicted = predictedVal >= 0.75;
+        const isFlareActual = actualVal >= 1.0;
+        status = (isFlarePredicted === isFlareActual) ? 'correct' : 'incorrect';
       }
-      
-      calendarData.push({ timestamp: d.toISOString(), ...bucket });
+
+      calendarData.push({
+        timestamp: key,
+        date: new Date(d),
+        predicted: predictedVal,
+        actual: actualVal,
+        status,
+        missing: !bucket
+      });
     }
+
     return calendarData;
-  }, [history]);
+  }, [history, selectedMonth, selectedYear]);
 
   const isPipelineRunning = pipelineStatus?.status === 'starting' || pipelineStatus?.status === 'running';
 
@@ -512,53 +522,101 @@ const PredictPage = () => {
           </div>
         )}
 
-        {/* ══ 30-Day Heatmap Grid ══ */}
+        {/* ══ 30-Day Risk Heatmap Grid ══ */}
         <div className="predict-chart-wrap heatmap-section">
           <div className="predict-chart-header">
             <h3 className="predict-chart-title">30-Day Risk Heatmap</h3>
             <div className="info-tooltip-wrap">
               <span className="info-icon">ℹ️</span>
               <div className="info-tooltip">
-                <strong>A 30-Day 'Report Card':</strong><br/>
-                This grid shows how well our AI model performed over the last month by comparing our predictions against real satellite data.<br/><br/>
-                • <strong>Hit (Green)</strong>: We predicted the flare status correctly.<br/>
-                • <strong>Miss (Red)</strong>: We either missed a flare or gave a false alarm.<br/>
-                • <strong>Gap (Gray)</strong>: Satellite data was temporarily unavailable.
+                <strong>Performance Report Card:</strong><br/>
+                We compare our AI verdicts against actual GOES-16 satellite data.<br/><br/>
+                • 🟢 <strong>Hit</strong>: Predicted flare occurred.<br/>
+                • 🔴 <strong>Miss</strong>: Flare occurred but wasn't predicted.<br/>
+                • ⚪ <strong>Gap</strong>: Missing telemetry data.
               </div>
             </div>
           </div>
 
-          <div className="predict-heatmap-wrapper">
-            <div className="heatmap-grid">
-              {chartData.map((bucket, i) => {
-                const d = new Date(bucket.timestamp);
-                const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-                
-                const isFlarePredicted = bucket.predicted >= 0.75;
-                const isFlareActual = bucket.actual >= 1.0; 
-                const isCorrect = isFlarePredicted === isFlareActual;
-                
-                return (
-                  <div 
-                    key={`day-${i}`} 
-                    className={`heatmap-cell ${bucket.missing ? 'empty' : isCorrect ? 'correct' : 'incorrect'}`}
-                    title={`${dateStr}\nPredicted: ${isFlarePredicted ? 'FLARE' : 'QUIET'}\nActual: ${isFlareActual ? 'FLARE' : 'QUIET'}`}
-                  >
-                    <span className="heatmap-date-num">{d.getDate()}</span>
-                  </div>
-                );
-              })}
+          <div className="heatmap-layout-grid">
+            {/* ── Left Side: The Calendar Grid ── */}
+            <div className="heatmap-left-panel">
+              <div className="heatmap-grid">
+                {chartData.map((bucket, i) => {
+                  const d = new Date(bucket.timestamp);
+                  const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                  
+                  const isFlarePredicted = bucket.predicted >= 0.75;
+                  const isFlareActual = bucket.actual >= 1.0; 
+                  const isCorrect = isFlarePredicted === isFlareActual;
+                  
+                  return (
+                    <div 
+                      key={`day-${i}`} 
+                      className={`heatmap-cell ${bucket.missing ? 'empty' : isCorrect ? 'correct' : 'incorrect'}`}
+                      title={`${dateStr}\nPredicted: ${isFlarePredicted ? 'FLARE' : 'QUIET'}\nActual: ${isFlareActual ? 'FLARE' : 'QUIET'}`}
+                    >
+                      <span className="heatmap-date-num">{d.getDate()}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          <div className="heatmap-footer-meta">
-            <div className="calendar-legend-inline">
-              <div className="legend-item"><span className="dot correct" /> <span>Hit</span></div>
-              <div className="legend-item"><span className="dot incorrect" /> <span>Miss</span></div>
-              <div className="legend-item"><span className="dot empty" /> <span>Gap</span></div>
-            </div>
-            <div className="heatmap-today-tag">
-              Today: {new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+            {/* ── Right Side: Controls, Info & Legend ── */}
+            <div className="heatmap-right-panel">
+              <div className="calendar-controls-mesh">
+                <div className="cal-nav-row no-border">
+                  <button className="cal-nav-btn" onClick={() => setSelectedMonth(m => (m === 0 ? 11 : m - 1))}>&lt;</button>
+                  <div className="cal-selectors">
+                    <select 
+                      className="cal-select month-select" 
+                      value={selectedMonth} 
+                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                    >
+                      {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => {
+                        const now = new Date();
+                        const isFutureMonth = selectedYear === now.getFullYear() && i > now.getMonth();
+                        const isFutureYear = selectedYear > now.getFullYear();
+                        return (
+                          <option key={m} value={i} disabled={isFutureMonth || isFutureYear}>
+                            {m}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <select 
+                      className="cal-select year-select" 
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    >
+                      {[2024, 2025, 2026].map(y => (
+                        <option key={y} value={y} disabled={y > new Date().getFullYear()}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button 
+                    className="cal-nav-btn" 
+                    disabled={selectedYear >= new Date().getFullYear() && selectedMonth >= new Date().getMonth()}
+                    onClick={() => setSelectedMonth(m => (m === 11 ? 0 : m + 1))}
+                  >
+                    &gt;
+                  </button>
+                </div>
+              </div>
+
+              <div className="heatmap-sidebar-meta">
+                <div className="legend-box">
+                  <span className="meta-label">LEGEND</span>
+                  <div className="legend-items-vertical">
+                    <div className="legend-item"><span className="dot correct" /> <span>Hit (Correct)</span></div>
+                    <div className="legend-item"><span className="dot incorrect" /> <span>Miss (Mismatch)</span></div>
+                    <div className="legend-item"><span className="dot empty" /> <span>Gap (No Data)</span></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -571,19 +629,12 @@ const PredictPage = () => {
           <h3 className="ar-cards-header-title">Active Regions</h3>
           <div className="info-tooltip-wrap">
             <span className="info-icon">ℹ️</span>
-            <div className="info-tooltip" style={{ left: 'auto', right: 0, width: '420px' }}>
-              <strong>Deep Active Region Intelligence:</strong><br/>
+            <div className="info-tooltip" style={{ left: 'auto', right: 0, width: '380px' }}>
+              <strong>Mission Control Intelligence:</strong><br/>
               <div style={{ marginTop: '0.4rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.4rem' }}>
-                • <strong>HGC Coordinate Tracking</strong>: We use Heliographic Carrington Longitude (hgc_x) to map the Sun's rotation. If |hgc_x| &lt; 0.35, the region is in the 'Direct' strike zone.<br/>
-                • <strong>Flare Probability</strong>: Derived from 12 separate magnetic features (Area, Complexity, Flux-Rope Stability). This score represents the risk of an M-Class or X-Class eruption within the next 24h.<br/>
-                • <strong>Predicted TTE (Time to Event)</strong>: Our temporal model estimates the 'Window of Opportunity' for a flare. A lower TTE means a magnetic reconfiguration is imminent.<br/>
-                • <strong>The Verdict</strong>: A deterministic call. 'FLARE EXPECTED' is triggered if probability exceeds our 35% safety threshold combined with high magnetic complexity.<br/>
-                • <strong>Infra Impact Matrix</strong>: We translate flux probability into real-world risks:
-                <ul style={{ margin: '0.2rem 0 0 1rem', padding: 0 }}>
-                  <li><strong>Nominal</strong>: No immediate threat to terrestrial or orbital assets.</li>
-                  <li><strong>GPS Interference</strong>: Ionospheric scintillation may cause 5-10m signal drift.</li>
-                  <li><strong>Monitor for CME</strong>: High risk of Coronal Mass Ejection; satellite operators should check shielding.</li>
-                </ul>
+                • <strong>Weighted Global Risk</strong>: Area-proportional scoring. Ensures massive, dangerous regions dominate the global risk and prevents "threat dilution" from smaller spots.<br/>
+                • <strong>Multi-Factor AR Intelligence</strong>: Derived from 12 magnetic telemetry features and HGC coordinate tracking to identify Direct Earth-Strike potential.<br/>
+                • <strong>30-Day Performance Audit</strong>: Rolling benchmark comparing AI verdicts against GOES-16 satellite flux to verify model reliability and operational accuracy.
               </div>
             </div>
           </div>
