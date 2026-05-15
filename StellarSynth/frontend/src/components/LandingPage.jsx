@@ -15,8 +15,8 @@ const LandingPage = () => {
       
       <nav className="landing-nav">
         <div className="nav-logo">
-          <span className="logo-icon">✨</span>
-          <span>StellarSynth</span>
+          <img src="/logo.png" alt="StellarSynth Logo" className="logo-img" />
+          <span>StellarSynth - NowCast Platform SAKEC</span>
         </div>
         <div className="nav-actions">
           {isSignedIn ? (

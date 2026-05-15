@@ -27,8 +27,8 @@ const DashboardLayout = () => {
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <Sun className="sidebar-logo" size={28} />
-          <span className="sidebar-title">StellarSynth</span>
+          <img src="/logo.png" alt="Logo" className="sidebar-logo-img" />
+          <span className="sidebar-title">StellarSynth - SAKEC</span>
         </div>
         
         <nav className="sidebar-nav">

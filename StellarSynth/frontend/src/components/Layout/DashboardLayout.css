@@ -25,6 +25,12 @@
   gap: 0.75rem;
 }
 
+.sidebar-logo-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+}
+
 .sidebar-logo {
   color: var(--accent-blue);
 }

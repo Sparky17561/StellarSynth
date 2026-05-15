@@ -59,8 +59,10 @@
   letter-spacing: -0.025em;
 }
 
-.logo-icon {
-  font-size: 1.5rem;
+.logo-img {
+  height: 32px;
+  width: auto;
+  border-radius: 4px;
 }
 
 .nav-actions {
