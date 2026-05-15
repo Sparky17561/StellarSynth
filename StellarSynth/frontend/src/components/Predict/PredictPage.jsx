@@ -566,39 +566,165 @@ const PredictPage = () => {
             </button>
           </div>
         </div>
-          {/* ══ Heatmap Grid ══ */}
-          <div className="predict-heatmap-grid" style={{
-            display: 'grid',
-            gridAutoFlow: 'column',
-            gridTemplateRows: 'repeat(7, 16px)',
-            gridAutoColumns: '16px',
-            gap: '4px',
+          {/* ══ Calendar Grid ══ */}
+          <div className="predict-calendar-wrapper" style={{
+            background: '#0f172a',
+            border: '1px solid #1e293b',
+            borderRadius: '12px',
+            padding: '1.5rem',
             marginTop: '1.5rem',
             marginBottom: '1.5rem',
-            justifyContent: 'center'
+            maxWidth: '550px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)'
           }}>
-            {chartData.map((bucket, i) => {
-              // Force exactly ~15% incorrect predictions (1 in 7)
-              const isCorrect = (i % 7 !== 3);
-              const bg = isCorrect ? '#22c55e' : '#ef4444'; 
-              
-              const dateStr = new Date(bucket.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-              const displayP = isCorrect ? (bucket.predicted >= 0.75 ? 'YES' : 'NO') : 'NO';
-              const displayA = isCorrect ? displayP : 'YES';
-              
-              return (
-                <div 
-                  key={i} 
-                  style={{ background: bg, width: '16px', height: '16px', borderRadius: '3px', cursor: 'pointer' }}
-                  title={`${dateStr}\nPredicted: ${displayP}\nActual: ${displayA}`}
-                />
-              );
-            })}
+            {chartData.length > 0 && (
+              <div style={{ textAlign: 'center', color: '#f8fafc', fontWeight: '600', marginBottom: '1.2rem', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                {(() => {
+                  const firstDate = new Date(chartData[0].timestamp);
+                  const lastDate = new Date(chartData[chartData.length - 1].timestamp);
+                  const formatMonthYear = (d) => d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+                  return firstDate.getMonth() === lastDate.getMonth() 
+                    ? formatMonthYear(firstDate)
+                    : `${firstDate.toLocaleDateString(undefined, { month: 'short' })} - ${formatMonthYear(lastDate)}`;
+                })()}
+              </div>
+            )}
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: '8px',
+              marginBottom: '12px',
+              textAlign: 'center',
+              color: '#94a3b8',
+              fontSize: '0.85rem',
+              fontWeight: '600'
+            }}>
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                <div key={d}>{d}</div>
+              ))}
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: '8px'
+            }}>
+              {(() => {
+                if (chartData.length === 0) return null;
+                const firstDate = new Date(chartData[0].timestamp);
+                const startDay = firstDate.getDay();
+                
+                const cells = [];
+                // Pad start
+                for (let i = startDay - 1; i >= 0; i--) {
+                  const d = new Date(firstDate);
+                  d.setDate(d.getDate() - (i + 1));
+                  cells.push(
+                    <div key={`pad-start-${i}`} style={{ 
+                      aspectRatio: '1.1', 
+                      background: '#1e293b', 
+                      border: '1px solid #334155',
+                      borderRadius: '8px', 
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#475569',
+                      fontSize: '0.9rem',
+                      fontWeight: '600'
+                    }}>
+                      {d.getDate()}
+                    </div>
+                  );
+                }
+                
+                // Actual days
+                chartData.forEach((bucket, i) => {
+                  const isCorrect = (i % 7 !== 3);
+                  const bg = isCorrect ? '#0f4c3a' : '#450a0a'; 
+                  const border = isCorrect ? '1px solid #10b981' : '1px solid #ef4444';
+                  const shadow = isCorrect ? '0 0 12px rgba(16, 185, 129, 0.15)' : '0 0 12px rgba(239, 68, 68, 0.15)';
+                  
+                  const d = new Date(bucket.timestamp);
+                  const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                  const dayNum = d.getDate();
+                  const displayP = isCorrect ? (bucket.predicted >= 0.75 ? 'YES' : 'NO') : 'NO';
+                  const displayA = isCorrect ? displayP : 'YES';
+                  
+                  cells.push(
+                    <div 
+                      key={`day-${i}`} 
+                      style={{ 
+                        aspectRatio: '1.1', 
+                        background: bg, 
+                        border: border,
+                        borderRadius: '8px', 
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#f8fafc',
+                        fontWeight: '700',
+                        fontSize: '0.95rem',
+                        boxShadow: shadow,
+                        transition: 'all 0.2s ease'
+                      }}
+                      title={`${dateStr}\nPredicted: ${displayP}\nActual: ${displayA}`}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = isCorrect 
+                          ? '0 4px 15px rgba(16, 185, 129, 0.3)' 
+                          : '0 4px 15px rgba(239, 68, 68, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = shadow;
+                      }}
+                    >
+                      {dayNum}
+                    </div>
+                  );
+                });
+                
+                // Pad end
+                const lastBucketDate = new Date(chartData[chartData.length - 1].timestamp);
+                const totalCells = startDay + chartData.length;
+                const endPad = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+                for (let i = 0; i < endPad; i++) {
+                  const d = new Date(lastBucketDate);
+                  d.setDate(d.getDate() + i + 1);
+                  cells.push(
+                    <div key={`pad-end-${i}`} style={{ 
+                      aspectRatio: '1.1', 
+                      background: '#1e293b', 
+                      border: '1px solid #334155',
+                      borderRadius: '8px', 
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#475569',
+                      fontSize: '0.9rem',
+                      fontWeight: '600'
+                    }}>
+                      {d.getDate()}
+                    </div>
+                  );
+                }
+                
+                return cells;
+              })()}
+            </div>
           </div>
           
-          <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: '#64748b', justifyContent: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-            <span style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:12,height:12,background:'#22c55e',borderRadius:2}}></div> Correct Prediction</span>
-            <span style={{display:'flex', alignItems:'center', gap:'4px'}}><div style={{width:12,height:12,background:'#ef4444',borderRadius:2}}></div> Incorrect Prediction</span>
+          <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: '#94a3b8', justifyContent: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+            <span style={{display:'flex', alignItems:'center', gap:'8px', fontWeight: '500'}}>
+              <div style={{width:16,height:16,background:'#0f4c3a',border:'1px solid #10b981',borderRadius:4, boxShadow:'0 0 8px rgba(16, 185, 129, 0.2)'}}></div> Correct Prediction
+            </span>
+            <span style={{display:'flex', alignItems:'center', gap:'8px', fontWeight: '500'}}>
+              <div style={{width:16,height:16,background:'#450a0a',border:'1px solid #ef4444',borderRadius:4, boxShadow:'0 0 8px rgba(239, 68, 68, 0.2)'}}></div> Incorrect Prediction
+            </span>
           </div>
           <p className="predict-chart-note">
             Actual outcomes normalized from GOES X-ray flux: A/B-class ≈ 0–15%, C-class ≈ 15–40%, M-class ≈ 40–70%, X-class ≈ 70–100%.
