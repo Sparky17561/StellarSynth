@@ -16,85 +16,52 @@
   position: relative;
 }
 
-/* ─── Top bar ─── */
-.stella-topbar {
+/* ─── Minimal Header ─── */
+.stella-live-pulse {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #22c55e;
+  border-radius: 50%;
+  box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
+  animation: pulse-animation 2s infinite;
+}
+
+.pulse-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.02em;
+}
+
+@keyframes pulse-animation {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.stella-header-minimal {
+  padding: 0.75rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1.5rem;
-  background: #ffffff;
   border-bottom: 1px solid #f1f5f9;
+  background: transparent;
+  flex-shrink: 0;
   z-index: 10;
-  flex-shrink: 0;
 }
 
-.stella-topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.stella-topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-/* Animated Orb */
-.stella-orb {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #0066FF 0%, #4D94FF 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  flex-shrink: 0;
-  box-shadow: 0 0 0 3px rgba(0,102,255,0.1), 0 2px 8px rgba(0,102,255,0.2);
-}
-
-.stella-topbar-left h1 {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-  letter-spacing: -0.01em;
-}
-
-.stella-subtitle {
-  font-size: 0.65rem;
-  color: #94a3b8;
-  margin: 0;
-  font-weight: 500;
-}
-
-/* Status badge */
-.stella-online-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: #10b981;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.stella-dot {
-  width: 6px;
-  height: 6px;
-  background: #10b981;
-  border-radius: 50%;
-  display: inline-block;
-  box-shadow: 0 0 6px rgba(16,185,129,0.4);
-}
-
-/* Clear / New Chat button */
-.stella-clear-btn {
+.stella-refresh-btn {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  color: #475569;
+  color: #64748b;
   border-radius: 8px;
-  padding: 0.3rem 0.75rem;
+  padding: 0.35rem 0.85rem;
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
@@ -102,141 +69,10 @@
   transition: all 0.15s;
 }
 
-.stella-clear-btn:hover {
+.stella-refresh-btn:hover {
   background: #f1f5f9;
   color: #0f172a;
   border-color: #cbd5e1;
-}
-
-/* ─── Compact Status Bar (Expandable Header) ─── */
-.stella-compact-status-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 1.5rem;
-  background: #f8fafc;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 0.75rem;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.15s;
-  flex-shrink: 0;
-}
-
-.stella-compact-status-bar:hover {
-  background: #f1f5f9;
-}
-
-.stella-csb-left {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.stella-csb-icon { font-size: 0.85rem; }
-.stella-csb-label { color: #64748b; font-weight: 500; }
-
-.stella-csb-risk {
-  font-weight: 700;
-  padding: 0.1rem 0.45rem;
-  border-radius: 4px;
-  border: 1px solid;
-  font-size: 0.7rem;
-}
-
-.stella-csb-item {
-  color: #475569;
-}
-
-.stella-csb-right {
-  color: #0066FF;
-  font-weight: 600;
-  font-size: 0.7rem;
-}
-
-/* Expanded Telemetry Drawer */
-.stella-expanded-telemetry {
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 1rem 1.5rem;
-  flex-shrink: 0;
-  animation: slideDown 0.2s ease-out;
-}
-
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.stella-telem-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
-}
-
-.telem-tile {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 0.4rem 0.65rem;
-  display: flex;
-  flex-direction: column;
-}
-
-.telem-label {
-  font-size: 0.62rem;
-  color: #64748b;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.telem-val {
-  font-size: 0.9rem;
-  color: #0f172a;
-  font-weight: 700;
-  margin-top: 0.1rem;
-}
-
-.stella-top-ars {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #f1f5f9;
-}
-
-.top-ars-label {
-  font-size: 0.65rem;
-  color: #64748b;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.ar-chip {
-  background: #f8fafc;
-  color: #334155;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 0.15rem 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
-.ar-chip-flagged {
-  background: #fff5f5;
-  color: #e53e3e;
-  border-color: #fed7d7;
-}
-
-.stella-refresh-ts {
-  font-size: 0.65rem;
-  color: #94a3b8;
-  margin-top: 0.5rem;
 }
 
 /* ─── Chat wrapper (main body) ─── */
@@ -308,19 +144,26 @@
 }
 
 .stella-bubble-text {
-  padding: 0;
+  padding: 0.85rem 1.1rem;
   font-size: 0.95rem;
   color: #1e293b;
   line-height: 1.6;
   white-space: pre-wrap;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 18px;
+  border-top-left-radius: 4px;
 }
 
 .stella-msg.user .stella-bubble-text {
-  background: #f1f5f9;
-  color: #0f172a;
-  padding: 0.6rem 1rem;
-  border-radius: 16px;
-  font-weight: 400;
+  background: #0066FF;
+  color: #ffffff;
+  padding: 0.7rem 1.1rem;
+  border-radius: 18px;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 18px;
+  border: none;
+  font-weight: 500;
 }
 
 .stella-bubble-time {
@@ -333,24 +176,47 @@
 .stella-formatted {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
 
 .stella-formatted p {
-  margin: 0;
+  margin: 0 0 0.75rem 0;
+}
+
+.stella-formatted p:last-child {
+  margin-bottom: 0;
 }
 
 .stella-section-line {
   display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  margin-top: 0.25rem;
+  flex-direction: column;
+  margin-top: 0.5rem;
+}
+
+.stella-section-line:first-child {
+  margin-top: 0;
 }
 
 .stella-section-header {
-  font-weight: 600;
-  color: #0066FF;
+  font-weight: 800;
+  color: #2563eb;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.stella-section-text {
+  display: block;
+  color: #334155;
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.stella-spacer {
+  height: 0.5rem;
 }
 
 /* ─── Typing indicator ─── */
@@ -542,11 +408,123 @@
   color: #0f172a;
 }
 
+/* ─── Reply Preview & Context ─── */
+.stella-reply-preview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f1f5f9;
+  border-left: 4px solid #0066FF;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  animation: slideInUp 0.2s ease-out;
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reply-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.reply-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #0066FF;
+  text-transform: uppercase;
+}
+
+.reply-text {
+  font-size: 0.75rem;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reply-clear {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.2rem;
+  font-size: 1rem;
+}
+
+.stella-msg-reply-context {
+  font-size: 0.75rem;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  border-left: 3px solid #cbd5e1;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.reply-arrow { color: #94a3b8; font-weight: 800; }
+
+/* ─── Rich Markdown Styling ─── */
+.stella-formatted h1, .stella-formatted h2, .stella-formatted h3 {
+  margin: 1rem 0 0.5rem 0;
+  color: #0f172a;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stella-formatted h1 { font-size: 1.25rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3rem; }
+.stella-formatted h2 { font-size: 1.1rem; }
+.stella-formatted h3 { font-size: 1rem; color: #2563eb; }
+
+.stella-formatted blockquote {
+  border-left: 4px solid #e2e8f0;
+  margin: 0.75rem 0;
+  padding: 0.2rem 0 0.2rem 1rem;
+  color: #475569;
+  font-style: italic;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.stella-formatted li {
+  margin-bottom: 0.35rem;
+  list-style: none;
+  position: relative;
+  padding-left: 1.2rem;
+}
+
+.stella-formatted li::before {
+  content: "•";
+  position: absolute;
+  left: 0.4rem;
+  color: #0066FF;
+  font-weight: bold;
+}
+
+/* ─── Input Area Tweaks ─── */
+.stella-input {
+  flex: 1;
+  border: none;
+  padding: 0.6rem 0;
+  font-size: 0.95rem;
+  color: #0f172a;
+  outline: none;
+  background: transparent;
+  max-height: 150px;
+  resize: none;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .stella-suggestions-grid { grid-template-columns: 1fr; }
-  .stella-telem-grid { grid-template-columns: repeat(2, 1fr); }
   .stella-input-wrapper { padding: 0.5rem 1rem 1rem; }
   .stella-messages { padding: 1rem 1rem 0; }
-  .stella-compact-status-bar { padding: 0.5rem 1rem; }
 }

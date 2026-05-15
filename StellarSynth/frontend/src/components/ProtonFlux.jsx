@@ -64,7 +64,19 @@ const ProtonFlux = () => {
   ];
 
   return (
-    <ChartCard title="Proton Flux | GOES 18" icon="☢️" currentPeriod={period} onPeriodChange={setPeriod} onRefresh={fetchData} isLoading={loading} stats={stats}>
+    <ChartCard 
+      title="Proton Flux | GOES 18" 
+      infoContent={`What is Plotted: This chart monitors the flow of high-energy protons originating from the Sun (Solar Energetic Particles).
+      
+      Y-axis Units: Particles per flux unit (pfu)
+      
+      Significance: Significant proton events (≥10 pfu) can cause biological hazards to astronauts, interference with satellite electronics, and polar radio communication blackouts.`}
+      currentPeriod={period} 
+      onPeriodChange={setPeriod} 
+      onRefresh={fetchData} 
+      isLoading={loading} 
+      stats={stats}
+    >
       <div className="cc-canvas-wrap" style={{ position: 'relative' }}>
         <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 2 }}>
           <select value={energy} onChange={e => setEnergy(e.target.value)} style={{ fontSize: '10px', padding: '2px 4px', border: '1px solid #e8eef8', borderRadius: '4px', color: '#4b5a7a', background: '#f5f8ff' }}>

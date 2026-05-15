@@ -46,7 +46,19 @@ const SolarWindSpeed = () => {
   ] : [];
 
   return (
-    <ChartCard title="Solar Wind Speed" icon="🌬️" currentPeriod={period} onPeriodChange={setPeriod} onRefresh={fetchPlasmaData} isLoading={isLoading} stats={stats}>
+    <ChartCard 
+      title="Solar Wind Speed" 
+      infoContent={`What is Plotted: This chart tracks the velocity at which the stream of charged particles (the solar wind) is traveling away from the Sun.
+      
+      Y-axis Units: Kilometers per second 
+      
+      Significance: It is a key factor in predicting the timing and initial intensity of an event. A higher-speed solar wind stream delivers more kinetic energy, which can impact Earth's magnetic field more strongly.`}
+      currentPeriod={period} 
+      onPeriodChange={setPeriod} 
+      onRefresh={fetchPlasmaData} 
+      isLoading={isLoading} 
+      stats={stats}
+    >
       <div className="cc-canvas-wrap">
         {data.length ? <canvas ref={canvasRef} /> : <div className="cc-no-data">No data</div>}
       </div>

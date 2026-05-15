@@ -73,7 +73,19 @@ const XrayFlux = () => {
   ];
 
   return (
-    <ChartCard title="X-ray Flux | GOES 19" icon="⚡" currentPeriod={period} onPeriodChange={setPeriod} onRefresh={fetchData} isLoading={loading} stats={stats}>
+    <ChartCard 
+      title="X-ray Flux | GOES 19" 
+      infoContent={`What is Plotted: This chart shows the intensity of solar X-ray radiation in two wavelength bands.
+      
+      Y-axis Units: Watts per square meter (W/m²)
+      
+      Significance: X-ray flux is used to classify solar flares (A, B, C, M, X). Rapid increases correlate with immediate radio blackouts on Earth's sunlit side.`}
+      currentPeriod={period} 
+      onPeriodChange={setPeriod} 
+      onRefresh={fetchData} 
+      isLoading={loading} 
+      stats={stats}
+    >
       <div className="cc-canvas-wrap">
         {allData.length ? <canvas ref={canvasRef} /> : <div className="cc-no-data">Loading…</div>}
       </div>

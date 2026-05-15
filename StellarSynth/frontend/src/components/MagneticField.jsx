@@ -61,7 +61,11 @@ const MagneticField = () => {
   return (
     <ChartCard
       title="Bz Component"
-      icon="🧲"
+      infoContent={`What is Plotted: This chart represents the north-south component (Bz) of the Interplanetary Magnetic Field (IMF).
+      
+      Y-axis Units: Nanoteslas (nT)
+      
+      Significance: When Bz is negative (southward), the IMF can more easily connect with Earth's northward-pointing magnetic field, potentially allowing solar energy to enter the magnetosphere and trigger geomagnetic storms.`}
       currentPeriod={period}
       onPeriodChange={setPeriod}
       onRefresh={fetchMagData}

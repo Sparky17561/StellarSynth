@@ -44,7 +44,19 @@ const SolarWindDensity = () => {
   ] : [];
 
   return (
-    <ChartCard title="Solar Wind Density" icon="⚪" currentPeriod={period} onPeriodChange={setPeriod} onRefresh={fetchPlasmaData} isLoading={isLoading} stats={stats}>
+    <ChartCard 
+      title="Solar Wind Density" 
+      infoContent={`What is Plotted: This chart shows the number of protons and other particles per cubic centimeter in the solar wind stream.
+      
+      Y-axis Units: Particles per cubic centimeter (p/cm³)
+      
+      Significance: Higher density means more material is hitting the Earth's magnetosphere, which can lead to stronger geomagnetic interactions even if speeds are moderate.`}
+      currentPeriod={period} 
+      onPeriodChange={setPeriod} 
+      onRefresh={fetchPlasmaData} 
+      isLoading={isLoading} 
+      stats={stats}
+    >
       <div className="cc-canvas-wrap">
         {data.length ? <canvas ref={canvasRef} /> : <div className="cc-no-data">No data</div>}
       </div>

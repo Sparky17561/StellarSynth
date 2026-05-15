@@ -78,22 +78,24 @@ def get_ai_insight():
             "Quiet"
         )
 
-        prompt = f"""You are Stella, StellarSynth's AI space weather analyst. Based on live NOAA telemetry and AthenaCTGRU ML predictions, generate a concise, impactful space weather insight for the dashboard.
+        xf_str = f"{xray_flux:.2e} W/m²" if xray_flux is not None else "Data unavailable"
+        prompt = f"""You are Stella, StellarSynth's AI space weather analyst. Your task is to provide a simple, human-readable summary of the current space weather situation that anyone can understand. Summarize the status of all live telemetry (flares, geomagnetic activity, solar wind) in plain English.
 
 LIVE DATA:
-- Global flare risk: {global_status} ({score_str}) as of {ts}
-- {ar_summary}
-- Kp index: {current_kp:.1f} ({kp_level})
-- X-ray class: {xray_cls} ({xray_flux:.2e} W/m²)
-- NOAA telemetry: {noaa_context}
+- Global flare prediction: {global_status} ({score_str} probability)
+- Active Regions summary: {ar_summary}
+- Current Kp index: {current_kp:.1f} ({kp_level})
+- Current X-ray class: {xray_cls} ({xf_str})
+- Additional NOAA telemetry:
+{noaa_context}
 
 RULES:
-1. Write exactly 3 sentences.
-2. Sentence 1: State the current risk status and the specific active region driving it.
-3. Sentence 2: Explain the most likely real-world impact on humans — be specific (HF radio blackout band, GPS degradation in meters, satellite drag altitude, aurora visibility latitude, power grid stress).
-4. Sentence 3: Give one concrete actionable recommendation (e.g., "Satellite operators should reduce drag-sensitive maneuvers in LEO", "HF radio operators on 10-30 MHz should expect signal degradation").
-5. Be precise with numbers. Do NOT use generic phrases like "elevated solar activity". Name the AR, quote the probability.
-6. Output plain text only — no headers, no bold, no markdown."""
+1. Write a 3-sentence paragraph in simple, human terms.
+2. Sentence 1: Summarize the overall "vibe" of the space weather (e.g., "The Sun is relatively calm today" or "We're currently seeing a bit of solar excitement").
+3. Sentence 2: Explain what this actually means for a normal person (e.g., "This might mean slightly prettier auroras up north but no major issues for your tech").
+4. Sentence 3: Give one clear, concrete recommendation (e.g., "It's a great night for aurora hunting" or "No special precautions are needed right now").
+5. Avoid technical jargon where possible.
+6. Plain text only. No markdown, no bolding, no headers."""
 
         chat_completion = client.chat.completions.create(
             messages=[

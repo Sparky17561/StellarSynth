@@ -71,9 +71,9 @@ const DashboardLayout = () => {
           <UserButton afterSignOutUrl="/" />
         </header>
 
-        {location.pathname === '/stella' ? (
-          // Stella fills remaining viewport exactly — no padding, no title
-          <div className="stella-fill">
+        {['/home', '/stella', '/predict'].includes(location.pathname) ? (
+          // Fill remaining viewport exactly — no padding, no title
+          <div className="stella-fill" style={location.pathname === '/home' ? { overflow: 'auto', padding: '1rem 2rem' } : {}}>
             <Outlet />
           </div>
         ) : (

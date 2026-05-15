@@ -50,7 +50,11 @@ const SolarWindTemperature = () => {
   return (
     <ChartCard
       title="Solar Wind Temperature"
-      icon="🌡️"
+      infoContent={`What is Plotted: This chart displays the temperature of the particles in the solar wind stream.
+      
+      Y-axis Units: Kelvin (K)
+      
+      Significance: Temperature fluctuations often correlate with speed and density changes, helping scientists identify different types of solar wind structures like Coronal Mass Ejections (CMEs).`}
       currentPeriod={period}
       onPeriodChange={setPeriod}
       onRefresh={fetchPlasmaData}

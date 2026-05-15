@@ -464,10 +464,11 @@ _PROGRESS_HINTS = [
 ]
 
 
+_active_processes = {}
+
 def run_pipeline_thread(history_hours: int):
-    """Run the_full_pipeline.py as a subprocess, stream stdout/stderr in real-time."""
+    """Run the_full_pipeline.py as a subprocess using the project venv."""
     log_file = _get_log_file(history_hours)
-    # Clear log from previous run
     try:
         with open(log_file, "w", encoding="utf-8") as f:
             f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}] Pipeline started: {history_hours}h window\n")
@@ -480,56 +481,53 @@ def run_pipeline_thread(history_hours: int):
     try:
         env = os.environ.copy()
         env["HISTORY_HOURS"] = str(history_hours)
-        env["PYTHONUNBUFFERED"] = "1"  # Force unbuffered output
+        env["PYTHONUNBUFFERED"] = "1"
+        
+        # Force use of project venv
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        venv_python = os.path.join(base_dir, "venv", "Scripts", "python.exe")
+        if not os.path.exists(venv_python):
+            # Fallback if venv is named differently or we're in a different structure
+            venv_python = sys.executable
+
         script_path = os.path.join(os.path.dirname(__file__), "the_full_pipeline.py")
 
         proc = subprocess.Popen(
-            [sys.executable, "-u", script_path],
+            [venv_python, "-u", script_path],
             cwd=os.path.dirname(__file__),
             env=env,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,  # Merge stderr into stdout
+            stderr=subprocess.STDOUT,
             text=True,
-            bufsize=1,  # Line buffered
+            bufsize=1,
         )
+        
+        _active_processes[history_hours] = proc
 
         current_progress = 5
         for raw_line in iter(proc.stdout.readline, ""):
             line = raw_line.rstrip()
-            if not line:
-                continue
-
+            if not line: continue
             _append_log(history_hours, line)
-
-            # Match against known progress hints
             for hint_text, hint_progress, hint_msg in _PROGRESS_HINTS:
                 if hint_text.lower() in line.lower():
                     current_progress = max(current_progress, hint_progress)
                     _write_status(history_hours, "running", current_progress, hint_msg)
                     break
             else:
-                # No match — just update the message with the raw line (truncated)
-                display = line[:120] if len(line) > 120 else line
-                _write_status(history_hours, "running", current_progress, display)
+                _write_status(history_hours, "running", current_progress, line[:100])
 
         proc.wait()
         retcode = proc.returncode
+        _active_processes.pop(history_hours, None)
 
         if retcode == 0:
-            _append_log(history_hours, "\n" + "=" * 60)
-            _append_log(history_hours, "Pipeline completed successfully.")
             _write_status(history_hours, "completed", 100, "Pipeline finished successfully.")
-            logger.info(f"Pipeline ({history_hours}h) completed.")
         else:
-            _append_log(history_hours, f"\nPipeline exited with code {retcode}")
-            _write_status(history_hours, "error", current_progress, f"Pipeline exited with non-zero code: {retcode}")
-            logger.error(f"Pipeline ({history_hours}h) failed with code {retcode}")
+            _write_status(history_hours, "error", current_progress, f"Pipeline exited with code {retcode}")
 
     except Exception as e:
-        msg = f"Pipeline thread exception: {e}"
-        logger.error(msg, exc_info=True)
-        _append_log(history_hours, msg)
-        _write_status(history_hours, "error", 0, msg)
+        _write_status(history_hours, "error", 0, str(e))
 
 @router.post("/run-pipeline")
 def trigger_pipeline(req: PipelineRequest = None):
@@ -542,8 +540,28 @@ def trigger_pipeline(req: PipelineRequest = None):
 
 @router.post("/reset-pipeline")
 def reset_pipeline(req: PipelineRequest = None):
-    """Physically deletes the stuck status/log files for a given window."""
+    """Physically kills the running process and deletes the stuck status/log files."""
     h_hours = req.history_hours if req else 36
+    
+    # 1. Kill the process if it exists
+    proc = _active_processes.get(h_hours)
+    if proc:
+        try:
+            logger.info(f"Physically killing pipeline process for {h_hours}h...")
+            if sys.platform == "win32":
+                # Aggressive taskkill on Windows to kill child processes too
+                import subprocess
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
+            else:
+                proc.terminate()
+                proc.wait(timeout=2)
+        except Exception as e:
+            logger.warning(f"Soft terminate failed, forcing kill: {e}")
+            try: proc.kill()
+            except: pass
+        _active_processes.pop(h_hours, None)
+
+    # 2. Cleanup files
     try:
         status_file = _get_status_file(h_hours)
         if os.path.exists(status_file):

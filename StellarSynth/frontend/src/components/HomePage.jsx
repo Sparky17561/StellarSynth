@@ -34,10 +34,7 @@ const HomePage = () => {
 
   return (
     <div className="dash-page">
-      <div className="dash-header-row">
-        <h1>Nowcast Dashboard</h1>
-        <p>Live space weather from NOAA — updates every 5 min</p>
-      </div>
+
 
       <div className="ai-bar">
         <span className="ai-bar-icon">✨</span>

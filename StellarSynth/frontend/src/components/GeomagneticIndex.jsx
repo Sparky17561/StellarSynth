@@ -72,7 +72,11 @@ const GeomagneticIndex = () => {
   return (
     <ChartCard
       title="Geomagnetic Activity (Kp)"
-      icon="🌍"
+      infoContent={`What is Plotted: The Kp index is a measure of the character of geomagnetic activity on a global scale.
+      
+      Y-axis Units: Kp units (0 to 9)
+      
+      Significance: It is the primary indicator of geomagnetic storms. High values (Kp ≥ 5) indicate storms that can cause auroras, satellite issues, and power grid stress.`}
       currentPeriod={period}
       onPeriodChange={setPeriod}
       onRefresh={fetchKpData}

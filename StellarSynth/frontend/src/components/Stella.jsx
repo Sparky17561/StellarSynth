@@ -1,4 +1,7 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Send } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import './Stella.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -14,10 +17,10 @@ const getSessionId = () => {
 };
 
 const QUICK_QUERIES = [
-  { label: '🔮 Current flare risk', q: "What's the current flare risk based on the latest ML prediction?", desc: "Analyze latest AthenaCTGRU tensors" },
-  { label: '🔍 Elevated risk drivers', q: "Why is the current flare risk elevated? Walk me through the top signals.", desc: "Physical breakdown of top active regions" },
-  { label: '📅 Flare timing forecast', q: "When will the next solar flare occur?", desc: "24h window probabilities and uncertainty" },
-  { label: '🛰️ Satellite operations', q: "What should satellite operators know about current space weather?", desc: "Actionable payload and drag advisories" },
+  { label: '🔮 Current flare risk', q: "What's the current flare risk right now?", desc: "Check the latest solar flare prediction" },
+  { label: '🔍 What is driving risk?', q: "Why is there a flare risk today? Explain in simple terms.", desc: "See which sunspots are active" },
+  { label: '📅 When is the next flare?', q: "When is the next solar flare likely to happen?", desc: "Forecast for the next 24 hours" },
+  { label: '🛰️ Tech & GPS impact', q: "Will space weather affect my GPS or phone today?", desc: "Real-world impacts for normal users" },
 ];
 
 const RISK_LIGHT = {
@@ -33,52 +36,50 @@ const TypingDots = () => (
   </div>
 );
 
-// Smart message renderer — clean markdown with customized bold/section formatting
+// Smart message renderer — handles README-style markdown (headers, lists, blockquotes, etc.)
 const FormattedBubble = ({ text }) => {
   if (!text) return null;
 
-  const lines = text.split('\n');
-
   return (
     <div className="stella-formatted">
-      {lines.map((line, i) => {
-        // Detect section header like **🔴 Current Risk** — ...
-        const sectionMatch = line.match(/^\*\*(.*?)\*\*(.*)/);
-        if (sectionMatch) {
-          const header = sectionMatch[1].trim();
-          const rest = sectionMatch[2];
-          return (
-            <div key={i} className="stella-section-line">
-              <span className="stella-section-header">{header}</span>
-              <span>{rest}</span>
-            </div>
-          );
-        }
-        // Inline bold **text**
-        const parts = line.split(/\*\*(.*?)\*\*/g);
-        return (
-          <p key={i} className={line === '' ? 'stella-spacer' : ''}>
-            {parts.map((part, j) =>
-              j % 2 === 1 ? <strong key={j}>{part}</strong> : part
-            )}
-          </p>
-        );
-      })}
+      <ReactMarkdown
+        components={{
+          // Map markdown elements to our custom styled components
+          h1: ({ node, ...props }) => <h1 {...props} />,
+          h2: ({ node, ...props }) => <h2 {...props} />,
+          h3: ({ node, ...props }) => <h3 {...props} />,
+          blockquote: ({ node, ...props }) => <blockquote {...props} />,
+          li: ({ node, ...props }) => <li {...props} />,
+          p: ({ node, ...props }) => <p {...props} />,
+          strong: ({ node, ...props }) => <strong {...props} />,
+        }}
+      >
+        {text}
+      </ReactMarkdown>
     </div>
   );
 };
 
-const MessageBubble = ({ msg }) => (
-  <div className={`stella-msg ${msg.role}`}>
+const MessageBubble = ({ msg, onReply }) => (
+  <div 
+    className={`stella-msg ${msg.role}`} 
+    onDoubleClick={() => onReply(msg)}
+    title="Double-click to reply"
+  >
     {msg.role === 'assistant' && (
       <div className="stella-avatar-sm">✨</div>
     )}
     <div className="stella-bubble">
+      {msg.replyTo && (
+        <div className="stella-msg-reply-context">
+          <span className="reply-arrow">⤴</span> {msg.replyTo.length > 60 ? msg.replyTo.slice(0, 60) + '...' : msg.replyTo}
+        </div>
+      )}
       <div className="stella-bubble-text">
         {msg.role === 'assistant' ? (
           <FormattedBubble text={msg.content} />
         ) : (
-          <div>{msg.content}</div>
+          <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
         )}
       </div>
       <div className="stella-bubble-time">{msg.time}</div>
@@ -86,9 +87,18 @@ const MessageBubble = ({ msg }) => (
   </div>
 );
 
+const ReplyPreview = ({ context, onClear }) => (
+  <div className="stella-reply-preview">
+    <div className="reply-content">
+      <span className="reply-label">Replying to:</span>
+      <span className="reply-text">{context}</span>
+    </div>
+    <button className="reply-clear" onClick={onClear}>✕</button>
+  </div>
+);
+
 const WindowChips = ({ chips, onSelect, loading }) => (
   <div className="window-chips">
-    <span className="window-chips-label">📅 Suggested follow-up windows:</span>
     <div className="window-chips-row">
       {chips.map(c => (
         <button
@@ -108,24 +118,31 @@ const Stella = () => {
   const initialMsg = {
     role: 'assistant',
     content:
-      "Hello! I'm **Stella** ✨, your AI space weather analyst.\n\n" +
-      "I interface directly with **AthenaCTGRU ML outputs** and **real-time NOAA telemetry** to deliver physics-grounded space weather intelligence.\n\n" +
-      "How can I assist your operations today?",
+      "Hello! I'm **Stella** ✨, your lead space weather analyst.\n\n" +
+      "I'm here to provide intelligent briefings on solar activity and its impact on our technology.\n\n" +
+      "How can I help you today?",
     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   };
 
+  const location = useLocation();
+  const navigate = useNavigate();
   const [sessionId, setSessionId] = useState(getSessionId);
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem('stella_messages');
     if (saved) { try { return JSON.parse(saved); } catch (e) { console.error(e); } }
     return [initialMsg];
   });
+  const [replyTo, setReplyTo] = useState(null);
+  const [windowChips, setWindowChips] = useState([
+    { label: "📊 Today's Briefing", q: "Give me a full briefing on today's solar activity." },
+    { label: "🚨 Critical Risks", q: "Are there any active sunspots I should be worried about right now?" },
+    { label: "📅 48h Forecast", q: "What does the geomagnetic forecast look like for the next 2 days?" }
+  ]);
   const [hasProactive, setHasProactive] = useState(localStorage.getItem('stella_proactive') === 'true');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
   const [statusError, setStatusError] = useState('');
-  const [windowChips, setWindowChips] = useState([]);
   const [predExpanded, setPredExpanded] = useState(false);
   const chatBottomRef = useRef(null);
   const inputRef = useRef(null);
@@ -133,6 +150,21 @@ const Stella = () => {
   useEffect(() => {
     localStorage.setItem('stella_messages', JSON.stringify(messages));
   }, [messages]);
+
+  // Handle incoming queries from other pages (Double-click feature)
+  useEffect(() => {
+    if (location.state?.query && !loading) {
+      const q = location.state.query;
+      const context = location.state.context || (q.includes('AR') ? 'Active Region' : 'Chart Data');
+      
+      // Clear location state to prevent re-triggering on refresh/back
+      navigate(location.pathname, { replace: true, state: {} });
+      
+      setReplyTo(context);
+      // Delay slightly to ensure component is fully ready
+      setTimeout(() => sendMessage(q, context), 100);
+    }
+  }, [location.state, loading, navigate]);
 
   useEffect(() => {
     if (status?.prediction && !hasProactive && messages.length <= 1) {
@@ -179,14 +211,22 @@ const Stella = () => {
     return () => clearInterval(id);
   }, [fetchStatus]);
 
-  const sendMessage = async (text) => {
+  const sendMessage = async (text, contextOverride = null) => {
     const q = (text || input).trim();
     if (!q || loading) return;
+
+    const currentReply = contextOverride || replyTo;
     setInput('');
+    setReplyTo(null);
     setWindowChips([]);
 
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setMessages(prev => [...prev, { role: 'user', content: q, time: now }]);
+    setMessages(prev => [...prev, { 
+      role: 'user', 
+      content: q, 
+      time: now, 
+      replyTo: currentReply 
+    }]);
     setLoading(true);
 
     try {
@@ -194,7 +234,12 @@ const Stella = () => {
       const res = await fetch(`${API}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: q, history, session_id: sessionId }),
+        body: JSON.stringify({ 
+          message: q, 
+          history, 
+          session_id: sessionId,
+          reply_context: currentReply
+        }),
       });
       const data = await res.json();
 
@@ -251,86 +296,28 @@ const Stella = () => {
   const col = RISK_LIGHT[pred?.global_status] || RISK_LIGHT.UNKNOWN;
   const isWelcomeState = messages.length === 1 || (messages.length === 2 && messages[1].role === 'assistant' && windowChips.length === 0);
 
+  const handleReply = (msg) => {
+    setReplyTo(msg.content);
+    inputRef.current?.focus();
+  };
+
   return (
     <div className="stella-page">
-      {/* ── Sleek Minimal Topbar ── */}
-      <div className="stella-topbar">
-        <div className="stella-topbar-left">
-          <div className="stella-orb">✨</div>
-          <div>
-            <h1>Stella AI</h1>
-            <p className="stella-subtitle">AthenaCTGRU · Llama 3.3 · NOAA Live</p>
-          </div>
+      {/* ── Minimal Header ── */}
+      <div className="stella-header-minimal">
+        <div className="stella-live-pulse">
+          <span className="pulse-dot"></span>
+          <span className="pulse-text">Live Monitoring Active</span>
         </div>
-        <div className="stella-topbar-right">
-          <div className="stella-online-badge">
-            <span className="stella-dot" />
-            <span>Connected</span>
-          </div>
-          <button className="stella-clear-btn" onClick={clearChat} title="Start new conversation">
-            New Chat
-          </button>
-        </div>
+        <button className="stella-refresh-btn" onClick={clearChat} title="Clear conversation and refresh">
+          Refresh
+        </button>
       </div>
-
-      {/* ── Expandable Compact Telemetry Bar (replaces stacked noise) ── */}
-      <div className="stella-compact-status-bar" onClick={() => setPredExpanded(!predExpanded)}>
-        <div className="stella-csb-left">
-          <span className="stella-csb-icon">🔮</span>
-          <span className="stella-csb-label">Global ML Prediction:</span>
-          <span className="stella-csb-risk" style={{ color: col.text, backgroundColor: col.bg, borderColor: col.border }}>
-            {pred?.global_status || 'QUIET'} {pred?.global_score != null ? `(${(pred.global_score * 100).toFixed(1)}%)` : ''}
-          </span>
-          {status?.kp_index != null && (
-            <span className="stella-csb-item">· Kp: <strong>{status.kp_index.toFixed(1)}</strong></span>
-          )}
-          {status?.xray_class && (
-            <span className="stella-csb-item">· X-ray: <strong>{status.xray_class}</strong></span>
-          )}
-        </div>
-        <div className="stella-csb-right">
-          <span className="stella-csb-toggle">{predExpanded ? 'Hide Details ▴' : 'View Telemetry ▾'}</span>
-        </div>
-      </div>
-
-      {predExpanded && (
-        <div className="stella-expanded-telemetry">
-          <div className="stella-telem-grid">
-            <div className="telem-tile">
-              <span className="telem-label">Geomagnetic Kp</span>
-              <strong className="telem-val">{status?.kp_index != null ? status.kp_index.toFixed(1) : '—'}</strong>
-            </div>
-            <div className="telem-tile">
-              <span className="telem-label">GOES X-Ray Class</span>
-              <strong className="telem-val">{status?.xray_class || '—'}</strong>
-            </div>
-            <div className="telem-tile">
-              <span className="telem-label">Solar Wind Speed</span>
-              <strong className="telem-val">{status?.solar_wind?.speed ? `${Math.round(status.solar_wind.speed)} km/s` : '—'}</strong>
-            </div>
-            <div className="telem-tile">
-              <span className="telem-label">Active SWPC Alerts</span>
-              <strong className="telem-val">{status?.alerts_count ?? '—'}</strong>
-            </div>
-          </div>
-          {pred?.top_ars?.length > 0 && (
-            <div className="stella-top-ars">
-              <span className="top-ars-label">Tracked Active Regions:</span>
-              {pred.top_ars.map(ar => (
-                <span key={ar.ar} className={`ar-chip ${ar.flagged ? 'ar-chip-flagged' : ''}`}>
-                  AR {ar.ar} · {ar.probability_24h}% {ar.flagged ? '⚠️' : ''}
-                </span>
-              ))}
-            </div>
-          )}
-          {pred?.timestamp && <div className="stella-refresh-ts">Model timestamp: {pred.timestamp}</div>}
-        </div>
-      )}
 
       {/* ── Chat Content Area ── */}
       <div className="stella-chat-wrap">
         <div className="stella-messages">
-          {messages.map((m, i) => <MessageBubble key={i} msg={m} />)}
+          {messages.map((m, i) => <MessageBubble key={i} msg={m} onReply={() => handleReply(m)} />)}
           {loading && (
             <div className="stella-msg assistant">
               <div className="stella-avatar-sm">✨</div>
@@ -361,38 +348,37 @@ const Stella = () => {
           <div ref={chatBottomRef} />
         </div>
 
-        {/* Window follow-up chips */}
-        {windowChips.length > 0 && !loading && (
-          <div className="stella-chips-container">
-            <WindowChips chips={windowChips} onSelect={sendMessage} loading={loading} />
-          </div>
-        )}
-
-        {/* ── Clean Input Row ── */}
+        {/* ── Input Box ── */}
         <div className="stella-input-wrapper">
+          {windowChips.length > 0 && !loading && (
+            <div className="stella-chips-container">
+              <WindowChips chips={windowChips} onSelect={sendMessage} loading={loading} />
+            </div>
+          )}
+          
+          {replyTo && <ReplyPreview context={replyTo} onClear={() => setReplyTo(null)} />}
+
           <div className="stella-input-box">
-            <input
-              id="stella-chat-input"
+            <textarea
               ref={inputRef}
               className="stella-input"
-              placeholder="Ask Stella to analyze solar flare risks, active region physics, or operational impact…"
+              placeholder="Ask Stella anything about space weather..."
               value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-              disabled={loading}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMessage())}
+              rows={1}
             />
             <button
-              id="stella-send-btn"
               className="stella-send"
               onClick={() => sendMessage()}
               disabled={loading || !input.trim()}
               title="Send message"
             >
-              {loading ? '⋯' : '↑'}
+              <Send size={18} />
             </button>
           </div>
           <div className="stella-input-footer">
-            Stella AI interfaces directly with AthenaCTGRU tensors and live space weather data streams. Check predictions page for deeper analytics.
+            Stella can make mistakes. Verify important info.
           </div>
         </div>
       </div>
