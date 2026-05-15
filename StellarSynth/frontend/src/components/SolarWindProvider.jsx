@@ -133,7 +133,7 @@ export const SolarWindProvider = ({ children }) => {
     try {
       const response = await fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json');
       const rawData = await response.json();
-      
+
       // Handle both old array format [[timestamp, kp, ...]] and new object format [{time_tag, Kp, ...}]
       const processedData = rawData.map(row => {
         if (Array.isArray(row)) {
@@ -171,17 +171,17 @@ export const SolarWindProvider = ({ children }) => {
     const sortedData = [...data].sort((a, b) => b.time.getTime() - a.time.getTime());
     const latestDataTime = sortedData[0].time.getTime();
     let ms;
-    
+
     switch (period) {
       case '6h': ms = 6 * 3600 * 1000; break;
       case '12h': ms = 12 * 3600 * 1000; break;
       case '24h': ms = 24 * 3600 * 1000; break;
       case '3d': ms = 3 * 24 * 3600 * 1000; break;
       case '7d': ms = 7 * 24 * 3600 * 1000; break;
-      default: 
+      default:
         return sortedData.sort((a, b) => a.time.getTime() - b.time.getTime());
     }
-    
+
     return sortedData
       .filter(d => latestDataTime - d.time.getTime() <= ms)
       .sort((a, b) => a.time.getTime() - b.time.getTime());

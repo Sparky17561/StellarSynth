@@ -495,15 +495,15 @@ const PredictPage = () => {
           <div className="predict-hero-new" style={{ borderLeft: `6px solid ${globalMeta.badge}` }}>
             <div className="hero-content-left">
               <div className="hero-title-row">
-                <span className="hero-main-label">GLOBAL FLARE RISK</span>
+                <span className="hero-main-label">WEIGHTED GLOBAL RISK</span>
                 <span className="hero-status-pill" style={{ color: globalMeta.color }}>{globalStatus}</span>
                 <span className="hero-prob-badge">{weightedRisk != null ? `${(weightedRisk * 100).toFixed(1)}%` : '—'}</span>
                 <div className="info-tooltip-wrap">
                   <span className="info-icon">ℹ️</span>
                   <div className="info-tooltip">
-                    <strong>Global Risk Calculation:</strong><br />
-                    An area-weighted average of all active regions. Larger regions influence the global score more significantly.<br /><br />
-                    <strong>Why it matters:</strong> Accurate global risk helps operators decide on satellite instrument safety.
+                    <strong>Weighted Mission Risk:</strong><br />
+                    An area-weighted average of all active regions. Ensures major sunspots have a proportional impact on the global threat score.<br /><br />
+                    <strong>Operational Impact:</strong> Helps mission operators prioritize instrument safety based on the most massive threats.
                   </div>
                 </div>
               </div>
@@ -629,12 +629,33 @@ const PredictPage = () => {
           <h3 className="ar-cards-header-title">Active Regions</h3>
           <div className="info-tooltip-wrap">
             <span className="info-icon">ℹ️</span>
-            <div className="info-tooltip" style={{ left: 'auto', right: 0, width: '380px' }}>
-              <strong>Mission Control Intelligence:</strong><br />
-              <div style={{ marginTop: '0.4rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.4rem' }}>
-                • <strong>Weighted Global Risk</strong>: Area-proportional scoring. Ensures massive, dangerous regions dominate the global risk and prevents "threat dilution" from smaller spots.<br />
-                • <strong>Multi-Factor AR Intelligence</strong>: Derived from 12 magnetic telemetry features and HGC coordinate tracking to identify Direct Earth-Strike potential.<br />
-                • <strong>30-Day Performance Audit</strong>: Rolling benchmark comparing AI verdicts against GOES-16 satellite flux to verify model reliability and operational accuracy.
+            <div className="info-tooltip" style={{ left: 'auto', right: 0, width: '450px' }}>
+              <strong>Mission Intelligence & Legend:</strong><br />
+              <div style={{ marginTop: '0.6rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.6rem' }}>
+                <div>
+                  <strong style={{ fontSize: '0.75rem', color: '#64748b' }}>AR STATUS</strong>
+                  <div style={{ marginTop: '0.2rem' }}>
+                    • 🟢 <strong>Quiet</strong>: Low flare risk (&lt;75%).<br />
+                    • 🔴 <strong>Elevated</strong>: High risk (≥75%).
+                  </div>
+                  <strong style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginTop: '0.6rem' }}>LOCATIONS</strong>
+                  <div style={{ marginTop: '0.2rem' }}>
+                    • <strong>Earth Facing</strong>: Center-disk risk.<br />
+                    • <strong>Limb</strong>: Near solar edges.
+                  </div>
+                </div>
+                <div>
+                  <strong style={{ fontSize: '0.75rem', color: '#64748b' }}>INFRA IMPACT</strong>
+                  <div style={{ marginTop: '0.2rem' }}>
+                    • <strong>Nominal</strong>: No expected impact.<br />
+                    • <strong>Monitor CME</strong>: Potential mass ejections.<br />
+                    • <strong>Radio Risk</strong>: HF signal noise potential.
+                  </div>
+                  <strong style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginTop: '0.6rem' }}>SCORING</strong>
+                  <div style={{ marginTop: '0.2rem' }}>
+                    • <strong>Weighted Risk</strong>: Area-weighted global score.
+                  </div>
+                </div>
               </div>
             </div>
           </div>
