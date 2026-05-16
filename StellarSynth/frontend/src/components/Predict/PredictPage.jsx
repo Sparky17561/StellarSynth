@@ -85,15 +85,17 @@ const getARIntelligence = (data) => {
   let impact = "Nominal";
   let impactColor = "#64748b";
 
-  if (prob > 0.8) {
+  // If Quiet (prob < 75%), impact is always Nominal
+  if (prob < 0.75) {
+    impact = "Nominal";
+    impactColor = "#16a34a"; // Match QUIET green
+  } else if (prob >= 0.85) {
     impact = "High Radio Risk";
-    impactColor = "#ef4444";
-  } else if (prob > 0.4) {
+    impactColor = "#ef4444"; // Match STRONG red
+  } else {
+    // 0.75 <= prob < 0.85 (MODERATE)
     impact = "Signal Noise Potential";
-    impactColor = "#f59e0b";
-  } else if (location.includes("Direct")) {
-    impact = "Monitor for CME";
-    impactColor = "#3b82f6";
+    impactColor = "#f59e0b"; // Match MODERATE orange
   }
 
   return { location, impact, impactColor };
